@@ -3,22 +3,27 @@ import csv
 import sys
 import numpy as np
 import math
+import traceback
 
-header_row=['']
+
+header_row=['source_coords','dest1_coords','dest2_coords','ret_angle']
 unique_dest=set()
-source_coords=""
+source_coords=()
+global_pair_sets=set()
 
 def create_unique_dest_list():
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
+ 
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
+    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         row1=next(reader)
         unique_dest=set() 
         """Considering all Source Latitude and Longitude points will be same"""
         global source_coords
-        source_coords=( "(" + row1["pickup_latitude"] +"," + row1["pickup_longitude"] + ")" )
+        source_coords=( float(row1["pickup_latitude"]) , float(row1["pickup_longitude"]) )
         for row in reader:
             ##source_coords=  ( "(" + row["pickup_latitude"] +"," + row["pickup_longitude"] + ")" )                                                        
-            dest_coords=    ( "(" + row["dropoff_latitude"] +"," + row["dropoff_longitude"] + ")" )
+            dest_coords=    (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
             unique_dest.add(dest_coords)
         return unique_dest
             
@@ -26,21 +31,51 @@ def create_unique_dest_list():
 def main():
     
     unique_dest=create_unique_dest_list()
-    thisdest_set=set()
+    print("****************************************")
+    print("Length of Unique Destinations in File: ", len(unique_dest))
+    print("****************************************")
+   
     ##Opening csv file to write pre computed data
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
-            
-        for dest_1 in unique_dest:
-            print(dest_1)
-            ## Creating a new set for each destination
-            thisdest_set = set(unique_dest.discard(dest_1))
-            print(thisdest_set1)
-                
-                
-               
 
+        for dest_1 in unique_dest:
+            for dest_2 in unique_dest:
+
+                ##Dont calculate for same destinations  - (S,D1,D1)
+                if(dest_1 == dest_2):
+                    continue
+                
+                ## If the pair of (S,D1,D2) or (S,D2,D1) is already in the set then continue without calculation
+                if (source_coords,dest_1,dest_2) in global_pair_sets:
+                    print(source_coords,dest_1,dest_2)
+                    continue
+                
+                if (source_coords,dest_2,dest_1) in global_pair_sets:
+                    print(source_coords,dest_2,dest_1)
+                    continue
+            
+
+                try:
+                        
+                    ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
+                    ret_angle = cal_angle(source_coords,dest_1,dest_2)
+
+                    if ret_angle == -1:  ## Incase of error, continue loop
+                        print("Exception in calculating angel for following points: ", dest_1, dest_2)
+                        continue
+
+                    temp_row=[source_coords,dest_1,dest_2,ret_angle]
+                    writer.writerow(temp_row)
+
+                    global global_pair_sets
+                    global_pair_sets.add((source_coords,dest_1,dest_2))
+
+                except:
+                    print("Exception in points: ",dest_1, dest_2)
+                    continue
             
 def latlong_to_3d(latr, lonr):
     """Convert a point given latitude and longitude in radians to
@@ -57,27 +92,34 @@ def angle_between_vectors_degrees(u, v):
     return np.degrees(
         math.acos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))))
 
-def cal_angle(A, B,C):
-    # Convert the points to numpy latitude/longitude radians space
-    a = np.radians(np.array(A))
-    b = np.radians(np.array(B))
-    c = np.radians(np.array(C))
+def cal_angle(A, B, C):
 
-    # The points in 3D space
-    a3 = latlong_to_3d(*a)
-    b3 = latlong_to_3d(*b)
-    c3 = latlong_to_3d(*c)
+    try:
+        angle3deg= -1
 
-    # Vectors in 3D space
-    a3vec = a3 - b3
-    c3vec = c3 - b3
+        # Convert the points to numpy latitude/longitude radians space
+        a = np.radians(np.array(A))
+        b = np.radians(np.array(B))
+        c = np.radians(np.array(C))
 
-    # Find the angle between the vectors in 2D space
-    angle3deg = angle_between_vectors_degrees(a3vec, c3vec)
+        # The points in 3D space
+        a3 = latlong_to_3d(*a)
+        b3 = latlong_to_3d(*b)
+        c3 = latlong_to_3d(*c)
 
+        # Vectors in 3D space
+        a3vec = a3 - b3
+        c3vec = c3 - b3
 
-    # Print the results
-    print('\nThe angle ABC in 3D space in degrees:', angle3deg)
+        # Find the angle between the vectors in 2D space
+        angle3deg = angle_between_vectors_degrees(a3vec, c3vec)
+
+    except:
+        print("Exception in calculating angel for following points: ", A,B,C)
+        angle3deg= -1
+        return angle3deg
+
+    return angle3deg
 
 def calculate_initial_compass_bearing(pointA, pointB):
     """
@@ -122,7 +164,6 @@ if __name__ == '__main__':
     main()
     
     ##calculate_initial_compass_bearing (pointA,pointB)
-    # The points in tuple latitude/longitude degrees space
     A=(-73.776702880859375, 40.645370483398437)
     B=(-73.776679992675781, 40.645378112792969)
     C=(-73.801872253417969, 40.665641784667969)
