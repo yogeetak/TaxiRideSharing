@@ -1,4 +1,4 @@
-id,vendorid,tpep_pickup_datetime,tpep_dropoff_datetime,passenger_count,trip_distance,pickup_longitude,pickup_latitude,ratecodeid,store_and_fwd_flag,dropoff_longitude,dropoff_latitude,payment_type,fare_amount,extra,mta_tax,tip_amount,tolls_amount,improvement_surcharge,total_amount
+id,vendorid,tpep_pickup_datetime,tpep_dropoff_datetime,passenger_count,trip_distance,pickup_latitude,pickup_longitude,ratecodeid,store_and_fwd_flag,dropoff_latitude,dropoff_longitude,payment_type,fare_amount,extra,mta_tax,tip_amount,tolls_amount,improvement_surcharge,total_amount
 9783,2,1/2/2016 12:24,1/2/2016 13:06,2,20.95,-73.77685547,40.64508438,2,N,-74.01080322,40.7048111,1,52,0,0.5,8,0,0.3,60.8
 9784,1,1/2/2016 12:24,1/2/2016 12:58,1,17.9,-73.7802124,40.64561844,2,N,-73.98758698,40.72460938,2,52,0,0.5,0,5.54,0.3,58.34
 9785,2,1/2/2016 12:24,1/2/2016 13:00,1,16.9,-73.79473114,40.64471817,2,N,-73.96846771,40.75492096,1,52,0,0.5,10.56,0,0.3,63.36

@@ -1,81 +1,32 @@
 import json
 import csv
-import sys
 import numpy as np
 import math
-import traceback
+import urllib
+from urllib.request import urlopen
+from urllib.request import Request
 
+header_row=['source_coords','dest1_coords','dest2_coords','ret_angle','source_D1_distance(in miles)','source_D1_time(in minutes)' ,'source_D1_avg_speed(per minute)']
+header_row.extend(['original_cost$2','original_cost$2.5','original_cost$3','original_cost$4','original_accepted_delay'])
+header_row.extend(['D1_D2_distance(in miles)','D1_D2_time(in minutes)' ,'D1_D2_avg_speed(per minute)','D1_D2_cost$2','D1_D2_cost$2.5','D1_D2_cost$3','D1_D2_cost$4'])
 
-header_row=['source_coords','dest1_coords','dest2_coords','ret_angle']
 unique_dest=set()
-source_coords=()
 global_pair_sets=set()
+source_coords= (-73.77685547,40.64508438)
+
 
 def create_unique_dest_list():
- 
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         row1=next(reader)
         unique_dest=set() 
-        """Considering all Source Latitude and Longitude points will be same"""
-        global source_coords
-        source_coords=( float(row1["pickup_latitude"]) , float(row1["pickup_longitude"]) )
         for row in reader:
             ##source_coords=  ( "(" + row["pickup_latitude"] +"," + row["pickup_longitude"] + ")" )                                                        
             dest_coords=    (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
             unique_dest.add(dest_coords)
         return unique_dest
-            
-    
-def main():
-    
-    unique_dest=create_unique_dest_list()
-    print("****************************************")
-    print("Length of Unique Destinations in File: ", len(unique_dest))
-    print("****************************************")
-   
-    ##Opening csv file to write pre computed data
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-        writer = csv.writer(csvwriterfile, dialect='excel')
-        writer.writerow(header_row)
 
-        for dest_1 in unique_dest:
-            for dest_2 in unique_dest:
-
-                ##Dont calculate for same destinations  - (S,D1,D1)
-                if(dest_1 == dest_2):
-                    continue
-                
-                ## If the pair of (S,D1,D2) or (S,D2,D1) is already in the set then continue without calculation
-                if (source_coords,dest_1,dest_2) in global_pair_sets:
-                    print(source_coords,dest_1,dest_2)
-                    continue
-                
-                if (source_coords,dest_2,dest_1) in global_pair_sets:
-                    print(source_coords,dest_2,dest_1)
-                    continue
-            
-
-                try:
-                        
-                    ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
-                    ret_angle = cal_angle(source_coords,dest_1,dest_2)
-
-                    if ret_angle == -1:  ## Incase of error, continue loop
-                        print("Exception in calculating angel for following points: ", dest_1, dest_2)
-                        continue
-
-                    temp_row=[source_coords,dest_1,dest_2,ret_angle]
-                    writer.writerow(temp_row)
-
-                    global global_pair_sets
-                    global_pair_sets.add((source_coords,dest_1,dest_2))
-
-                except:
-                    print("Exception in points: ",dest_1, dest_2)
-                    continue
             
 def latlong_to_3d(latr, lonr):
     """Convert a point given latitude and longitude in radians to
@@ -121,50 +72,100 @@ def cal_angle(A, B, C):
 
     return angle3deg
 
-def calculate_initial_compass_bearing(pointA, pointB):
-    """
-    Calculates the bearing between two points.
-    The formulae used is the following:
-        θ = atan2(sin(Δlong).cos(lat2),
-                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
-    :Parameters:
-      - `pointA: The tuple representing the latitude/longitude for the
-        first point. Latitude and longitude must be in decimal degrees
-      - `pointB: The tuple representing the latitude/longitude for the
-        second point. Latitude and longitude must be in decimal degrees
-    :Returns:
-      The bearing in degrees
-    :Returns Type:
-      float
-    """
-    if (type(pointA) != tuple) or (type(pointB) != tuple):
-        raise TypeError("Only tuples are supported as arguments")
+def osrm_distance_cal(point1, point2):
+    try:
+        
+        d1_latitude,d1_longitude=point1
+        d2_latitude,d2_longitude=point2
 
-    lat1 = math.radians(pointA[0])
-    lat2 = math.radians(pointB[0])
+        ##url = "http://router.project-osrm.org/route/v1/driving/"+str(d1_latitude) +","+str(d1_longitude)+";" +str(d2_latitude) +","+str(d2_longitude)+";"
+        url = "http://127.0.0.1:5000/route/v1/driving/"+str(d1_latitude) +","+str(d1_longitude)+";" +str(d2_latitude) +","+str(d2_longitude)
+        response = urlopen(url)
+        string = response.read().decode('utf-8')
+        json_obj = json.loads(string)
+        
+        # trip distance in miles
+        trip_distance = json_obj['routes'][0]['distance'] * float(0.000621371)
 
-    diffLong = math.radians(pointB[1] - pointA[1])
+        # trip duration in minutes
+        trip_duration = json_obj['routes'][0]['duration'] * float(0.0166667)
 
-    x = math.sin(diffLong) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
-            * math.cos(lat2) * math.cos(diffLong))
+        # average_speed in miles per minute
+        average_speed = float(trip_distance)/float(trip_duration)
 
-    initial_bearing = math.atan2(x, y)
+    except TypeError as e: 
+        print('Error: ', e)
+        return -1,-1,-1
+    except Exception as e: 
+        print('Exception in calculating OSRM distances',point1, point2, e)
+        return -1,-1,-1
+            
+    return round(trip_distance,2),round(trip_duration,2),round(average_speed,2)
 
-    # Now we have the initial bearing but math.atan2 return values
-    # from -180° to + 180° which is not what we want for a compass bearing
-    # The solution is to normalize the initial bearing as shown below
-    initial_bearing = math.degrees(initial_bearing)
-    compass_bearing = (initial_bearing + 360) % 360
-    print(compass_bearing)
-    return compass_bearing
+    
+def main():
+    unique_dest=create_unique_dest_list()
+    
+    print("****************************************")
+    print("Length of Unique Destinations in File: ", len(unique_dest))
+    print("****************************************")
+   
+    ##Opening csv file to write pre computed data
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_taxi1000.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+        writer = csv.writer(csvwriterfile, dialect='excel')
+        writer.writerow(header_row)
+
+        for dest_1 in unique_dest:
+            ##Calculate Distance, Time & Average Speed from (S, D1)
+            source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
+            ##print("Source and d1 values: ", source_D1_distance ,source_D1_time ,source_D1_avg_speed )
+            if source_D1_distance == -1 or source_D1_time == -1 or source_D1_avg_speed == -1:
+                continue
+            
+            for dest_2 in unique_dest:
+                ##Dont calculate for same destinations  - (S,D1,D1)
+                if(dest_1 == dest_2):
+                    continue
+                
+                ## If the pair of (S,D1,D2) is already in the set then continue without calculation
+                if (source_coords,dest_1,dest_2) in global_pair_sets:
+                    continue
+                
+                ## If the pair of (S,D2,D1) is already in the set then continue without calculation
+                if (source_coords,dest_2,dest_1) in global_pair_sets:
+                    continue
+
+                ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
+                ret_angle = cal_angle(source_coords,dest_1,dest_2)
+
+                if ret_angle == -1:  ## Incase of error, continue loop
+                    continue
+                    
+                ##Calculate Distance, Time & Average Speed from (D1, D2)
+                D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed  = osrm_distance_cal(dest_1,dest_2)
+                if D1_D2_distance == -1 or D1_D2_time == -1 or D1_D2_avg_speed == -1:
+                    continue
+
+                                                
+                ##Calculating Acceptable Delay
+                if source_D1_distance >= 5:
+                    original_accepted_delay = (source_D1_time * 50)/100
+                else:
+                    original_accepted_delay = (source_D1_time * 30)/100
+                
+                ##Writing all pre computed values to csv file
+                temp_row=[source_coords,dest_1,dest_2,round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
+                temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay])
+                temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
+                
+                writer.writerow(temp_row)
+
+                global global_pair_sets
+                global_pair_sets.add((source_coords,dest_1,dest_2))
+
 
 
 if __name__ == '__main__':
     main()
     
-    ##calculate_initial_compass_bearing (pointA,pointB)
-    A=(-73.776702880859375, 40.645370483398437)
-    B=(-73.776679992675781, 40.645378112792969)
-    C=(-73.801872253417969, 40.665641784667969)
-

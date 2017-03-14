@@ -1,0 +1,24 @@
+1) Download the zip files for windows from 
+http://build.project-osrm.org/
+
+2) Download New York Map Data from  - New  York- Latest .osm.pbf file
+
+http://download.geofabrik.de/north-america/us/new-york.html
+
+
+CD to the directory where all OSRM-release folder is
+
+
+3)Commands to run
+
+https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
+
+
+osrm-extract new-york-latest.osm.pbf -p car.lua
+osrm-contract new-york-latest.osrm
+osrm-routed new-york-latest.osrm
+
+Now the service is started:
+To Test:
+
+ http://127.0.0.1:5000/route/v1/driving/13.388860,52.517037;13.385983,52.496891
