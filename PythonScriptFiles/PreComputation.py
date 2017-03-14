@@ -150,9 +150,9 @@ def main():
                                                 
                 ##Calculating Acceptable Delay
                 if source_D1_distance >= 5:
-                    original_accepted_delay = (source_D1_time * 50)/100
-                else:
                     original_accepted_delay = (source_D1_time * 30)/100
+                else:
+                    original_accepted_delay = (source_D1_time * 50)/100
                 
                 ##Writing all pre computed values to csv file
                 temp_row=[source_coords,dest_1,dest_2,round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
