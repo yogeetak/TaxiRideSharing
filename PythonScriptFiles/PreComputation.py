@@ -6,12 +6,14 @@ import urllib
 from urllib.request import urlopen
 from urllib.request import Request
 
-header_row=['source_coords','dest1_coords','dest2_coords','ret_angle','source_D1_distance(in miles)','source_D1_time(in minutes)' ,'source_D1_avg_speed(per minute)']
+header_row=['source_coords','dest1_coords','dest2_coords','pickup_time','passenger_count','ret_angle','source_D1_distance(in miles)','source_D1_time(in minutes)' ,'source_D1_avg_speed(per minute)']
 header_row.extend(['original_cost$2','original_cost$2.5','original_cost$3','original_cost$4','original_accepted_delay'])
 header_row.extend(['D1_D2_distance(in miles)','D1_D2_time(in minutes)' ,'D1_D2_avg_speed(per minute)','D1_D2_cost$2','D1_D2_cost$2.5','D1_D2_cost$3','D1_D2_cost$4'])
 
 unique_dest=set()
 global_pair_sets=set()
+trip_dict={}
+passenger_dict={}
 source_coords= (-73.77685547,40.64508438)
 
 
@@ -19,12 +21,18 @@ def create_unique_dest_list():
     ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
     with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/taxi1000.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
-        row1=next(reader)
         unique_dest=set() 
         for row in reader:
-            ##source_coords=  ( "(" + row["pickup_latitude"] +"," + row["pickup_longitude"] + ")" )                                                        
-            dest_coords=    (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
+            timestamp=row["tpep_pickup_datetime"]
+            passenger_count=row["passenger_count"]
+            dest_coords = (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
             unique_dest.add(dest_coords)
+
+            if dest_coords not in trip_dict:    
+                trip_dict[dest_coords]=[timestamp]
+            if dest_coords not in passenger_dict:
+                passenger_dict[dest_coords]=[passenger_count]
+
         return unique_dest
 
             
@@ -117,6 +125,9 @@ def main():
         writer.writerow(header_row)
 
         for dest_1 in unique_dest:
+            timestamp = trip_dict[dest_coords]
+            passenger_count = passenger_dict[dest_coords]
+                
             ##Calculate Distance, Time & Average Speed from (S, D1)
             source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
             ##print("Source and d1 values: ", source_D1_distance ,source_D1_time ,source_D1_avg_speed )
@@ -155,7 +166,7 @@ def main():
                     original_accepted_delay = (source_D1_time * 50)/100
                 
                 ##Writing all pre computed values to csv file
-                temp_row=[source_coords,dest_1,dest_2,round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
+                temp_row=[source_coords,dest_1,dest_2,timestamp,passenger_count,round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
                 temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay])
                 temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
                 
