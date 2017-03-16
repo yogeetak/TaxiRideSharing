@@ -1,0 +1,34 @@
+Data1.csv
+
+Exception in calculating OSRM distances (-73.61265564, 40.7833786) (-73.6126709, 40.78338623) float division by zero
+Exception in calculating OSRM distances (-73.6126709, 40.78338623) (-73.61265564, 40.7833786) float division by zero
+Exception in calculating OSRM distances (-73.79391479, 40.65634918) (-73.79391479, 40.656353) float division by zero
+Exception in calculating OSRM distances (-73.79391479, 40.656353) (-73.79391479, 40.65634918) float division by zero
+Exception in calculating OSRM distances (-74.18161011, 40.68772888) (-74.18175507, 40.68775177) float division by zero
+Exception in calculating OSRM distances (-74.18175507, 40.68775177) (-74.18161011, 40.68772888) float division by zero
+
+
+Data2.csv
+Exception in retriving following points from source:  (-73.91713715, 40.8332901)
+Exception in calculating OSRM distances (-73.75318909, 40.6792717) (-73.75344849, 40.67938614) float division by zero
+Exception in calculating OSRM distances (-73.75344849, 40.67938614) (-73.75318909, 40.6792717) float division by zero
+
+(-73.8429184	40.70937729)
+(-73.99455261	40.75022125)
+
+Data3.csv
+Exception in calculating OSRM distances (-74.00746918, 40.7408905) (-74.00753021, 40.74090958) float division by zero
+Exception in calculating OSRM distances (-74.00753021, 40.74090958) (-74.00746918, 40.7408905) float division by zero
+
+Data4.csv
+
+Exception in calculating OSRM distances (-73.97893524, 40.7486763) (-73.97888184, 40.74872589) float division by zero
+Exception in calculating OSRM distances (-73.97888184, 40.74872589) (-73.97893524, 40.7486763) float division by zero
+
+Data5.csv
+Exception in calculating OSRM distances (-73.98574066, 40.75279617) (-73.98542023, 40.75267029) float division by zero
+Exception in calculating OSRM distances (-73.98542023, 40.75267029) (-73.98574066, 40.75279617) float division by zero
+Exception in calculating OSRM distances (-74.1772995, 40.69515228) (-74.17749786, 40.69501114) float division by zero
+Exception in calculating OSRM distances (-74.17749786, 40.69501114) (-74.1772995, 40.69515228) float division by zero
+Exception in calculating OSRM distances (-73.95871735, 40.81013107) (-73.95870209, 40.81012726) float division by zero
+Exception in calculating OSRM distances (-73.95870209, 40.81012726) (-73.95871735, 40.81013107) float division by zero

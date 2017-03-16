@@ -1,5 +1,6 @@
 import json
 import csv
+import sys
 import numpy as np
 import math
 import urllib
@@ -20,23 +21,30 @@ source_coords= (-73.785924,40.645134)
 
 
 def create_unique_dest_list():
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/data1.csv', 'r') as csvreaderfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/data1.csv', 'r') as csvreaderfile:
+    
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/data1-part2.csv', 'r') as csvreaderfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/data5.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         unique_dest=set() 
         for row in reader:
-            timestamp=row["tpep_pickup_datetime"]
-            datetime_timestamp = datetime.strptime(timestamp, '%d/%m/%y %H:%M')
-            passenger_count=row["passenger_count"]
-            dest_coords = (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
-            unique_dest.add(dest_coords)
+            try:
+                dest_coords = (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
+                timestamp=row["tpep_pickup_datetime"]
+                try: ##Handling dates of format Year: 16, 2016
+                     datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
+                except ValueError:
+                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
 
-            if dest_coords not in trip_dict:    
-                trip_dict[dest_coords]=datetime_timestamp
-                
-            if dest_coords not in passenger_dict:
-                passenger_dict[dest_coords]=passenger_count
-
+                passenger_count=row["passenger_count"]
+                unique_dest.add(dest_coords)
+                if dest_coords not in trip_dict:    
+                    trip_dict[dest_coords]=datetime_timestamp
+                    
+                if dest_coords not in passenger_dict:
+                    passenger_dict[dest_coords]=passenger_count
+            except:
+                print("Exception in retriving following points from source: ", dest_coords)
+                continue
         return unique_dest
 
             
@@ -85,9 +93,7 @@ def cal_angle(A, B, C):
     return angle3deg
 
 def osrm_distance_cal(point1, point2):
-    try:
-        return 2,2,2
-        
+    try:      
         d1_latitude,d1_longitude=point1
         d2_latitude,d2_longitude=point2
 
@@ -120,15 +126,15 @@ def main():
     global global_pair_sets
     unique_dest=create_unique_dest_list()
     temp_trip_dict=trip_dict  ##Values will be deleted from the temp dictionary to avoid recalculating
-    
+
     print("****************************************")
     print("Length of Unique Destinations in File: ", len(unique_dest))
     print("****************************************")
     print()
    
     ##Opening csv file to write pre computed data
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_data1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_data1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_data1_part2.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_data5.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
 
@@ -145,20 +151,30 @@ def main():
         print()
 
         ##Create Time intervals of 5 mins
-        delta = [timedelta(minutes=i) for i in range(0,100000,5)]
-        for time_interval in delta:
+        #delta = [timedelta(minutes=i) for i in range(0, 1000000,5)]
+
+        range_q=starttime - timedelta(minutes=5)
+        while range_q < endtime:
+            range_q =range_q + timedelta(minutes=5)
+            
+        #for time_interval in delta:
             matchings=0
-            range_q=starttime + time_interval
-            print("Time Interval:", range_q)
-            if range_q > endtime:
-                break
+            #range_q=starttime + time_interval
+            #if range_q > endtime:
+                #print("Limit exceeded")
+                #break
+            
             ##Retrieve from dictionary only rows pertaining to current time period
             time_interval_keys = [x for x in temp_trip_dict if temp_trip_dict[x] <= range_q]
+            if len(time_interval_keys) == 0:
+                continue
+
+            print("Time Interval:", range_q)
             print("Destination Group Count", len(time_interval_keys))
             
             ##Iterate Values only for the time periods, match within same time period
             for dest_1 in time_interval_keys:
- 
+
                 ##Calculate Distance, Time & Average Speed from (S, D1)
                 source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
                 ##print("Source and d1 values: ", source_D1_distance ,source_D1_time ,source_D1_avg_speed )
