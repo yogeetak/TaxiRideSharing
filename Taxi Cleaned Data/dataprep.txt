@@ -1,0 +1,5 @@
+Data Preparation Steps:
+
+1. Remove (dest coordinates) duplicates
+2. Modify column names of 
+	Dest_lat and dest_long 
