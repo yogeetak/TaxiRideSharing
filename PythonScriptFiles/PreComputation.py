@@ -22,19 +22,19 @@ source_coords= (-73.785924,40.645134)
 
 def create_unique_dest_list():
     
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/data1-part2.csv', 'r') as csvreaderfile:
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/data5.csv', 'r') as csvreaderfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/TaxiData-20000-5.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         unique_dest=set() 
         for row in reader:
             try:
-                dest_coords = (float(row["dropoff_latitude"]) , float (row["dropoff_longitude"]) )
+                dest_coords = (float(row["dropoff_longitude"]) , float (row["dropoff_latitude"]) )
                 timestamp=row["tpep_pickup_datetime"]
                 try: ##Handling dates of format Year: 16, 2016
-                     datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
+                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
                 except ValueError:
                     datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
-
+                               
                 passenger_count=row["passenger_count"]
                 unique_dest.add(dest_coords)
                 if dest_coords not in trip_dict:    
@@ -42,8 +42,8 @@ def create_unique_dest_list():
                     
                 if dest_coords not in passenger_dict:
                     passenger_dict[dest_coords]=passenger_count
-            except:
-                print("Exception in retriving following points from source: ", dest_coords)
+            except Exception as e:
+                print("Exception in retriving following points from source: ", dest_coords,e)
                 continue
         return unique_dest
 
@@ -133,8 +133,8 @@ def main():
     print()
    
     ##Opening csv file to write pre computed data
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_data1_part2.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_data5.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-5.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
 
@@ -174,7 +174,6 @@ def main():
             
             ##Iterate Values only for the time periods, match within same time period
             for dest_1 in time_interval_keys:
-
                 ##Calculate Distance, Time & Average Speed from (S, D1)
                 source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
                 ##print("Source and d1 values: ", source_D1_distance ,source_D1_time ,source_D1_avg_speed )
