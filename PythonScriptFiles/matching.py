@@ -31,7 +31,7 @@ def main():
             time_window = cursor.fetchall()
             for trip in time_window:
                 
-                s_coords = trip[1]; d1_coords = trip[2];  pickup_time = trip[3];passenger_count = trip[4] ; s_d1_dist = trip[5] ;s_d1_time = trip[6];s_d1_avg_speed=trip[7]
+                s_coords = trip[1]; d1_coords = trip[2];  pickup_time = trip[3];d1_passenger_count = trip[4] ; s_d1_dist = trip[5] ;s_d1_time = trip[6];s_d1_avg_speed=trip[7]
                 original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11]
                 
                 ##Select all precomputed rows from table for destination D1
@@ -39,15 +39,42 @@ def main():
                 cursor.execute(a)
                 precomputed_rows = cursor.fetchall()
                 if len(precomputed_rows) == 0 or precomputed_rows == None:
-                    print("Not present in preComputed rows or angle > 30", trip[2])
+                    print("Not present in preComputed rows or angle > 30", d1_coords)
                     continue
                 
+                ##TODO: For desination D1 which has no d2's with angles <-30 eg: (-73.79402924, 40.65670776), try to find best match using other factors
+
+                for row in precomputed_rows:
+                    d2_coords = row[2]
+                    d2_passenger_count = row[5]
+        
+                    ##C1: Passenger Count Constraint
+                    passenger_count = d1_passenger_count + d2_passenger_count
+                    if passenger_count > 4:
+                        print("Passenger constraint not satisfied for trip:", d1_coords,d2_coords)
+                        continue
+                        
+                    ##C2: Number of trips <= 2
+
+                    #Retriving the orginal S-D2 distance and time from trips tables
+                    stmt= "select * from taxisharing.newtripsrequests where dest1_coords ='{0}'".format(d2_coords)
+                    cursor.execute(a)
+                    d2_rows = cursor.fetchall()
+                    print(len(d2_rows))
+
+                    ##Reorder destinations
                 
 
-                ##TODO: For desination D1 which has no d2's with angles <-30 eg: (-73.79402924, 40.65670776), try to find best match using other factors
-                    
-                    
-            
+##                    if s_d2_dist > s_d1_dist: 
+##                        accepted_delay = float(row["original_accepted_delay"])  ##Should be delay of D1
+##                        original_travel_time = float(row["source_D1_time(in minutes)"]) ##Should be time of S-D1
+##                        total_travel_time = original_travel_time + float(row["D1_D2_time(in minutes)"])  
+##
+##                    else:
+##                        accepted_delay = float(row["original_accepted_delay"])
+##                        original_travel_time = float(row["source_D1_time(in minutes)"]) ##should be time of S-D2
+##                        total_travel_time = original_travel_time + float(row["D1_D2_time(in minutes)"])
+                
                 
                 
 ##                print("Source coords: ", trip[1])
