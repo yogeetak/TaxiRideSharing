@@ -1,0 +1,9 @@
+DB Updates:
+
+1) Delete unwanted rows from newtripsrequests table - Dest2_coords, ret_angle, D1-D2 references
+
+2) Delete all rows that have no precomputed values 
+
+delete * from taxisharing.newptripsrequests
+where 
+dest1_coords not in (select distinct dest1_coords from taxisharing.newprecomputedtable);
