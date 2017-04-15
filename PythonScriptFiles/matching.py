@@ -7,7 +7,6 @@ import sys, os
 def main():
     try:
         final_pairing=[]
-        
         matching_temp_dict={}
         no_matching_temp_dict={}
         connect_str = "dbname='cs581' user='postgres' host='localhost' " + \
@@ -30,7 +29,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=5)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.newtripsrequests where pickup_time between %s and %s",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.newtripsrequests where pickup_time between %s and %s order by newtripsrequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Number of rides in time windown:", len(time_window))
             print("************************************")
@@ -40,7 +39,7 @@ def main():
                 d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11]
                 
                 ##Select all precomputed rows from table for destination D1
-                a= "select * from taxisharing.newprecomputedtable where dest1_coords =  '{0}' and ret_angle <= 30 order by ret_angle asc;".format(d1_coords)
+                a= "select * from taxisharing.newprecomputedtable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
                 cursor.execute(a)
                 precomputed_rows = cursor.fetchall()
                 if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -97,10 +96,12 @@ def main():
                         accepted_delay = d2_original_accepted_delay
                         source_travel_time = s_d2_time
                         total_travel_time = s_d1_time + d1_d2_time
+                        total_travel_distance = s_d1_dist + d1_d2_dist
                     else:                                                   #Ordering: S-D2-D1
                         accepted_delay = d1_original_accepted_delay
                         source_travel_time = s_d1_time
                         total_travel_time = s_d2_time + d1_d2_time
+                        total_travel_distance = s_d2_dist + d1_d2_dist
 
                     ##C3: delay time Constraint
                     if(total_travel_time > (source_travel_time + accepted_delay)):
@@ -108,9 +109,10 @@ def main():
                         continue
                     
                     ##C4: Total savings
-                    saving= s_d1_dist + s_d2_dist - d1_d2_dist
+                    saving= s_d1_dist + s_d2_dist - total_travel_distance
                     matched = True
-                    val=[d2_coords, saving]
+                    ##FORMAT : D2, Saving (distance), total_travel_distance,total_travel_time
+                    val=[d2_coords, saving,total_travel_distance,total_travel_time]
                     
                     if d1_coords in matching_temp_dict: 
                         i=matching_temp_dict[d1_coords]
@@ -137,20 +139,23 @@ def main():
             print(matching_temp_dict[i])
             print()
 
+            ##Add to a final matching dictionary - ##FORMAT : D2, Saving (distance), total_travel_distance,total_travel_time
+            print(matching_temp_dict[i][1])
+
             ##Remove from non-match dictionary
-            if i[2] in no_matching_temp_dict:
-                del no_matching_temp_dict[i[2]]
-            if i in no_matching_temp_dict:
-                del no_matching_temp_dict[i]
+##            if i[2] in no_matching_temp_dict:
+##                del no_matching_temp_dict[i[2]]
+##            if i in no_matching_temp_dict:
+##                del no_matching_temp_dict[i]
                 
         print()
-        print("Non Matchings are:")
-        for i in no_matching_temp_dict:
-            print(i)
-
-        print("Number of matches", len(matching_temp_dict))
-        print("Number of no matches found", len(no_matching_temp_dict))
-        print()
+##        print("Non Matchings are:")
+##        for i in no_matching_temp_dict:
+##            print(i)
+##
+##        print("Number of matches", len(matching_temp_dict))
+##        print("Number of no matches found", len(no_matching_temp_dict))
+##        print()
             
     except Exception as e:
         print("Exception :", e)
