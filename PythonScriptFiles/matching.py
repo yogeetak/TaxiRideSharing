@@ -6,7 +6,8 @@ import sys, os
     
 def main():
     try:
-        pairing=[]
+        final_pairing=[]
+        
         matching_temp_dict={}
         no_matching_temp_dict={}
         connect_str = "dbname='cs581' user='postgres' host='localhost' " + \
@@ -33,13 +34,13 @@ def main():
             time_window = cursor.fetchall()
             print("Number of rides in time windown:", len(time_window))
             print("************************************")
-            for trip in time_window:                 
+            for trip in time_window:
+                matched = False
                 s_coords = trip[1]; d1_coords = trip[2];  pickup_time = trip[3];d1_passenger_count = trip[4] ; s_d1_dist = trip[5] ;s_d1_time = trip[6];s_d1_avg_speed=trip[7]
-                original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11]
+                d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11]
                 
                 ##Select all precomputed rows from table for destination D1
                 a= "select * from taxisharing.newprecomputedtable where dest1_coords =  '{0}' and ret_angle <= 30 order by ret_angle asc;".format(d1_coords)
-                #a= "select * from taxisharing.newprecomputedtable where dest1_coords =  '{0}' order by pickup_time asc;".format(d1_coords)
                 cursor.execute(a)
                 precomputed_rows = cursor.fetchall()
                 if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -47,13 +48,13 @@ def main():
                     no_matching_temp_dict[d1_coords] =''
                     continue
 
-                print("D1:", d1_coords)
-                print("d1_passenger_count",d1_passenger_count)
-                print("s_d1_dist",s_d1_dist)
-                print("s_d1_time",s_d1_time)
-                print("original_accepted_delay",original_accepted_delay)
-                print("Possible Candidate Matches from PreComputed tables",len(precomputed_rows))
-                print()
+##                print("D1:", d1_coords)
+##                print("d1_passenger_count",d1_passenger_count)
+##                print("s_d1_dist",s_d1_dist)
+##                print("s_d1_time",s_d1_time)
+##                print("d1_original_accepted_delay",d1_original_accepted_delay)
+##                print("Possible Candidate Matches from PreComputed tables",len(precomputed_rows))
+##                print()
                 counter=0
                 
                 ##TODO: For desination D1 which has no d2's with angles <-30 eg: (-73.79402924, 40.65670776), try to find best match using other factors
@@ -84,52 +85,72 @@ def main():
                     d2_pickup_time = d2_trip[3]; s_d2_dist = d2_trip[5] ;s_d2_time = d2_trip[6];s_d2_avg_speed=d2_trip[7]
                     d2_original_accepted_delay = d2_trip[12] ;d2_original_cost_2= d2_trip[8]; d2_original_cost_25= d2_trip[9];d2_original_cost_3 = d2_trip[10] ;d2_original_cost_4= d2_trip[11]
 
-                    print("D2:",d2_coords)
-                    print("d2_passenger_count",d2_passenger_count)
-                    print("s_d2_dist",s_d2_dist)
-                    print("s_d2_time",s_d2_time)
-                    print("d2_original_accepted_delay",d2_original_accepted_delay)
-                    print()
+##                    print("D2:",d2_coords)
+##                    print("d2_passenger_count",d2_passenger_count)
+##                    print("s_d2_dist",s_d2_dist)
+##                    print("s_d2_time",s_d2_time)
+##                    print("d2_original_accepted_delay",d2_original_accepted_delay)
+##                    print()
                 
                     ##Reorder destinations D1 and D2
-                    if s_d2_dist > s_d1_dist: 
-                        accepted_delay = original_accepted_delay
-                        original_travel_time = s_d1_time
-                        total_travel_time = original_travel_time + d1_d2_time
-                        cur_ordering = "S-D2-D1"
-
-                    else:
+                    if s_d2_dist > s_d1_dist:                               #Ordering: S-D1-D2
                         accepted_delay = d2_original_accepted_delay
-                        original_travel_time = s_d2_time
-                        total_travel_time = original_travel_time + d1_d2_time
+                        source_travel_time = s_d2_time
+                        total_travel_time = s_d1_time + d1_d2_time
+                    else:                                                   #Ordering: S-D2-D1
+                        accepted_delay = d1_original_accepted_delay
+                        source_travel_time = s_d1_time
+                        total_travel_time = s_d2_time + d1_d2_time
 
                     ##C3: delay time Constraint
-                    if(total_travel_time > (original_travel_time + accepted_delay)):
+                    if(total_travel_time > (source_travel_time + accepted_delay)):
                         #print("Delay constraint failed", d1_coords,d2_coords)
                         continue
                     
                     ##C4: Total savings
                     saving= s_d1_dist + s_d2_dist - d1_d2_dist
-                    val=(d1_coords , counter,d2_coords, saving)
-                    if d1_coords in matching_temp_dict:
+                    matched = True
+                    val=[d2_coords, saving]
+                    
+                    if d1_coords in matching_temp_dict: 
                         i=matching_temp_dict[d1_coords]
                         i.extend(val)
                         matching_temp_dict[d1_coords]=i
+                        
                     else:
-                        matching_temp_dict[d1_coords] = [val]
+                        matching_temp_dict[d1_coords] = val
            
-                if d1_coords in matching_temp_dict:
-                    print("Matching Found: ",matching_temp_dict[d1_coords])
-                else:
-                    no_matching_temp_dict[d1_coords] =''
-                    print("No Matching Found")
-                print("***********************************************")
+                    if not matched:
+                        no_matching_temp_dict[d1_coords] =''
+        
+                ##print("***********************************************")
                 
                
             cur_start_time = cur_end_time
             break  #Delete to run for all rides in time window
+
+
+        print()    
+        print("Matchings are:")
+        for i in matching_temp_dict:
+            print(i)
+            print(matching_temp_dict[i])
+            print()
+
+            ##Remove from non-match dictionary
+            if i[2] in no_matching_temp_dict:
+                del no_matching_temp_dict[i[2]]
+            if i in no_matching_temp_dict:
+                del no_matching_temp_dict[i]
+                
+        print()
+        print("Non Matchings are:")
+        for i in no_matching_temp_dict:
+            print(i)
+
         print("Number of matches", len(matching_temp_dict))
         print("Number of no matches found", len(no_matching_temp_dict))
+        print()
             
     except Exception as e:
         print("Exception :", e)
