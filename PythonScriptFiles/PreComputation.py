@@ -22,8 +22,8 @@ source_coords= (-73.785924,40.645134)
 
 def create_unique_dest_list():
     
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/TaxiData-20000-5.csv', 'r') as csvreaderfile:
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         unique_dest=set() 
         for row in reader:
@@ -133,8 +133,8 @@ def main():
     print()
    
     ##Opening csv file to write pre computed data
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-5.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
 
@@ -197,14 +197,14 @@ def main():
                         writer.writerow(temp_row)
                         continue
                         
-                    
-                    ## If the pair of (S,D1,D2) is already in the set then continue without calculation
-                    if (source_coords,dest_1,dest_2) in global_pair_sets:
-                        continue
-                    
-                    ## If the pair of (S,D2,D1) is already in the set then continue without calculation
-                    if (source_coords,dest_2,dest_1) in global_pair_sets:
-                        continue
+##                    
+##                    ## If the pair of (S,D1,D2) is already in the set then continue without calculation
+##                    if (source_coords,dest_1,dest_2) in global_pair_sets:
+##                        continue
+##                    
+##                    ## If the pair of (S,D2,D1) is already in the set then continue without calculation
+##                    if (source_coords,dest_2,dest_1) in global_pair_sets:
+##                        continue
 
                     ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
                     ret_angle = cal_angle(source_coords,dest_1,dest_2)
