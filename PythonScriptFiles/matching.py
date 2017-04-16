@@ -50,7 +50,7 @@ def main():
                     no_matching_temp_dict[d1_coords] =''
                     continue
 
-                print("D1:", d1_coords)
+##                print("D1:", d1_coords)
 ##                print("d1_passenger_count",d1_passenger_count)
 ##                print("s_d1_dist",s_d1_dist)
 ##                print("s_d1_time",s_d1_time)
@@ -128,7 +128,8 @@ def main():
                         matching_temp_dict[d1_coords] = [val]
            
                 if not matched:
-                    no_matching_temp_dict[d1_coords] =''
+                    ##FORMAT : D1,s_d1_dist,s_d1_time
+                    no_matching_temp_dict[d1_coords] =[s_d1_dist,s_d1_time]
                       
             cur_start_time = cur_end_time
             break  #Delete to run for all rides in time window
@@ -148,7 +149,7 @@ def main():
 
             if len(matching_temp_dict[i]) == 1:  ##Implies only one candidate pairing
                 d2= matching_temp_dict[i][0][0]
-                if d2 in final_pairing:
+                if d2 in final_pairing  or d2 in final_pairing.values():
                     continue
                 final_pairing[i]= d2
                 running_shared_total_distance=running_shared_total_distance+ matching_temp_dict[i][0][2]
@@ -162,7 +163,7 @@ def main():
 
                 for cands in matching_temp_dict[i]:
                     d2_1= cands[0]
-                    if d2_1 in final_pairing:
+                    if d2_1 in final_pairing or d2_1 in final_pairing.values() :
                         continue
 
                     temp_curr_saving = cands[1]
@@ -175,7 +176,6 @@ def main():
                         without_sharing_total_time=without_sharing_total_time + matching_temp_dict[i][0][5]
                 
 
-
         ##Remove from non-match dictionary
         for pair in final_pairing:
             print("Matching :", pair, final_pairing[pair])
@@ -187,6 +187,12 @@ def main():
         print()
         for n_pairs in no_matching_temp_dict:
             print("Non Matchings:", n_pairs)
+            ##FORMAT : D1, s_d1_dist,s_d1_time
+            running_shared_total_distance=running_shared_total_distance+ no_matching_temp_dict[n_pairs][0]
+            running_shared_total_time=running_shared_total_time+ no_matching_temp_dict[n_pairs][1]
+            without_sharing_total_distance=without_sharing_total_distance + no_matching_temp_dict[n_pairs][0]
+            without_sharing_total_time=without_sharing_total_time + no_matching_temp_dict[n_pairs][1]
+            
 
         print("************************************")
         print("Number of matches", len(final_pairing))
@@ -195,6 +201,10 @@ def main():
         print("Total Time Without Ride Sharing:",without_sharing_total_time)
         print("Total Distance With Ride Sharing:",running_shared_total_distance)
         print("Total Time WithRide Sharing:",running_shared_total_time)
+        print("************************************")
+        print("TOTAL SAVING (DISTANCE in MILES) : ",(without_sharing_total_distance - running_shared_total_distance))
+        print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
+
         print("************************************")
         print()
             
