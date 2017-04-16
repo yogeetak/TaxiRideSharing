@@ -168,7 +168,14 @@ def prepare_final_matching(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 return False
-                        
+
+            if d2 in final_pairing.values() or d2 in final_pairing:
+                poss= [x[0] for x in temp_matching_dict[t]]
+                final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
+                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
+                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                return False
+            
             final_pairing[t] = d2
             running_shared_total_distance   =   running_shared_total_distance   +   total_travel_distance
             running_shared_total_time       =   running_shared_total_time       +   total_travel_time
@@ -190,9 +197,6 @@ def prepare_final_matching(t):
 
 def print_values():
     a=set(final_pairing.values())
-    ##for i in final_pairing:
-###        print(original_trips[i])
-###        print(i,final_pairing[i])
     if len(final_pairing) != len(a):
         print("************************************")
         print("DUPLICATE VALUES POSSIBLE IN FINAL PAIRING SET")
@@ -264,7 +268,7 @@ def main():
                     temp_no_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time
-            if counter == 2:
+            if counter == 10:
                 break  #Delete to run for all rides in time window
 
         print("************************************")
