@@ -108,8 +108,6 @@ def find_pairing(trip):
                 candidates = [val]
             else:
                 candidates.extend([val])
- 
-            
     except Exception as e:
         print("Exception :", e)
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -122,14 +120,113 @@ def find_pairing(trip):
     else:
         candidates = [s_d1_dist, s_d1_time]
     return candidates, message
+
+def prepare_final_matching(t):
+    global running_shared_total_distance; global running_shared_total_time; global without_sharing_total_distance;
+    global without_sharing_total_time; global single_trip_time; global single_trip_distance;
+
+    try:
+        if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
+            if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
+                final_single_rides[t] = 'Forced Alone'
+                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
+                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                return False
         
+            total_travel_distance = 0
+            total_travel_time = 0
+            no_rideshare_travel_dist = 0
+            no_rideshare_travel_time = 0
+            d2=''
+
+            if len(temp_matching_dict[t]) == 1:  ##Implies only one candidate pairing
+                d2= temp_matching_dict[t][0][0]
+                total_travel_distance = temp_matching_dict[t][0][2]
+                total_travel_time = temp_matching_dict[t][0][3]
+                no_rideshare_travel_dist = temp_matching_dict[t][0][4]
+                no_rideshare_travel_time = temp_matching_dict[t][0][5]
+
+            else: # implies more than one candidate pairing, select the pairing with maximum saving
+                curr_saving=0
+                for cands in temp_matching_dict[t]:
+                    if cands[0] in final_pairing or cands[0] in final_pairing.values():
+                        continue
+            
+                    temp_curr_saving = cands[1]
+                    if(temp_curr_saving > curr_saving):
+                        d2= cands[0]
+                        curr_saving = temp_curr_saving
+                        total_travel_distance = cands[2]
+                        total_travel_time = cands[3]
+                        no_rideshare_travel_dist = cands[4]
+                        no_rideshare_travel_time = cands[5]
+
+            ##Adding selected D2 as FINAL PAIRING
+            if d2 =='':
+                poss= [x[0] for x in temp_matching_dict[t]]
+                final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
+                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
+                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                return False
+                        
+            final_pairing[t] = d2
+            running_shared_total_distance   =   running_shared_total_distance   +   total_travel_distance
+            running_shared_total_time       =   running_shared_total_time       +   total_travel_time
+            without_sharing_total_distance  =   without_sharing_total_distance  +   no_rideshare_travel_dist
+            without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
+
+        else: ##Non Matched - Single Rides
+            final_single_rides[t]   =   original_trips[t]
+            single_trip_distance    =   single_trip_distance    +   temp_no_matching_dict[t][0]
+            single_trip_time        =   single_trip_time        +   temp_no_matching_dict[t][1]
+        
+    except Exception as e:
+        print("Exception :", e)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
+        return False
+    return True
+
+def print_values():
+    a=set(final_pairing.values())
+    ##for i in final_pairing:
+###        print(original_trips[i])
+###        print(i,final_pairing[i])
+    if len(final_pairing) != len(a):
+        print("************************************")
+        print("DUPLICATE VALUES POSSIBLE IN FINAL PAIRING SET")
+        print("************************************")
+
+    b=set(final_single_rides)
+    if len(final_single_rides) != len(b):
+        print("************************************")
+        print("DUPLICATE VALUES POSSIBLE IN FINAL SINGLE RIDES SET")
+        print("************************************")
+      
+    print("************************************")
+    print("Total Number of Rides Considered:", len(original_trips))
+    print("Number of matches", len(final_pairing))
+    print("Number of no matches found(Single Trips)", len(final_single_rides))
+    print()
+    print("Total Distance Without Ride Sharing:",without_sharing_total_distance)
+    print("Total Time Without Ride Sharing:",without_sharing_total_time)
+    print()
+    print("Total Distance With Ride Sharing:",running_shared_total_distance)
+    print("Total Time WithRide Sharing:",running_shared_total_time)
+    print()
+    print("Total Distance With Ride Sharing (Single Trips Considered):",single_trip_distance)
+    print("Total Time WithRide Sharing (Single Trips Considered):",single_trip_time)
+    print()
+    print("************************************")
+    print("TOTAL SAVING (DISTANCE in MILES) : ",(without_sharing_total_distance - running_shared_total_distance))
+    print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
+    print("************************************")
+    print()
     
 def main():
     try:
         global cursor
-        global running_shared_total_distance; global running_shared_total_time; global without_sharing_total_distance;
-        global without_sharing_total_time; global single_trip_time; global single_trip_distance;
-
         if cursor is None:
             cursor = create_db_conn()
             
@@ -158,10 +255,6 @@ def main():
             for trip in time_window:
                 d1_coords = trip[2]
                 candidates, message = find_pairing(trip)
-##                print("D1:" ,d1_coords)
-##                print("Candidates:", candidates)
-##                print("Message",message)
-##                print()
                 original_trips[d1_coords]  = message
                 original_trips_data[d1_coords] = [trip[5] , trip[6]]     ##FORMAT : [s_d1_dist, s_d1_time]
 
@@ -180,100 +273,15 @@ def main():
         print("************************************")
         print()
 
-        sorted_original_trips = sorted(original_trips.items(), key=operator.itemgetter(1))
+        sorted_original_trips = sorted(original_trips.items(), key=operator.itemgetter(0))
         
         for tup in sorted_original_trips:
             t=tup[0]
-            if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
-                if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
-                    final_single_rides[t] = 'Forced Alone'
-                    single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                    single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                    continue
-            
-                total_travel_distance = 0
-                total_travel_time = 0
-                no_rideshare_travel_dist = 0
-                no_rideshare_travel_time = 0
-                d2=''
-
-                if len(temp_matching_dict[t]) == 1:  ##Implies only one candidate pairing
-                    d2= temp_matching_dict[t][0][0]
-                    total_travel_distance = temp_matching_dict[t][0][2]
-                    total_travel_time = temp_matching_dict[t][0][3]
-                    no_rideshare_travel_dist = temp_matching_dict[t][0][4]
-                    no_rideshare_travel_time = temp_matching_dict[t][0][5]
-
-                else: # implies more than one candidate pairing, select the pairing with maximum saving
-                    curr_saving=0
-                    for cands in temp_matching_dict[t]:
-                        if cands[0] in final_pairing or cands[0] in final_pairing.values():
-                            continue
-                
-                        temp_curr_saving = cands[1]
-                        if(temp_curr_saving > curr_saving):
-                            d2= cands[0]
-                            curr_saving = temp_curr_saving
-                            total_travel_distance = cands[2]
-                            total_travel_time = cands[3]
-                            no_rideshare_travel_dist = cands[4]
-                            no_rideshare_travel_time = cands[5]
- 
-                ##Adding selected D2 as FINAL PAIRING
-                if d2 =='':
-                    poss= [x[0] for x in temp_matching_dict[t]]
-                    final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
-                    single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                    single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                    continue
-                            
-                            
-                final_pairing[t] = d2
-                running_shared_total_distance   =   running_shared_total_distance   +   total_travel_distance
-                running_shared_total_time       =   running_shared_total_time       +   total_travel_time
-                without_sharing_total_distance  =   without_sharing_total_distance  +   no_rideshare_travel_dist
-                without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
-
-            else: ##Non Matched - Single Rides
-                final_single_rides[t]   =   original_trips[t]
-                single_trip_distance    =   single_trip_distance    +   temp_no_matching_dict[t][0]
-                single_trip_time        =   single_trip_time        +   temp_no_matching_dict[t][1]
-
-            
-        a=set(final_pairing.values())
-        if len(final_pairing) != len(a):
-            print("************************************")
-            print("DUPLICATE VALUES POSSIBLE IN FINAL PAIRING SET")
-            print("************************************")
- 
-        b=set(final_single_rides)
-        if len(final_single_rides) != len(b):
-            print("************************************")
-            print("DUPLICATE VALUES POSSIBLE IN FINAL SINGLE RIDES SET")
-            print("************************************")
- 
-        
-          
-        print("************************************")
-        print("Total Number of Rides Considered:", len(original_trips))
-        print("Number of matches", len(final_pairing))
-        print("Number of no matches found(Single Trips)", len(final_single_rides))
-        print()
-        print("Total Distance Without Ride Sharing:",without_sharing_total_distance)
-        print("Total Time Without Ride Sharing:",without_sharing_total_time)
-        print()
-        print("Total Distance With Ride Sharing:",running_shared_total_distance)
-        print("Total Time WithRide Sharing:",running_shared_total_time)
-        print()
-        print("Total Distance With Ride Sharing (Single Trips Considered):",single_trip_distance)
-        print("Total Time WithRide Sharing (Single Trips Considered):",single_trip_time)
-        print()
-        print("************************************")
-        print("TOTAL SAVING (DISTANCE in MILES) : ",(without_sharing_total_distance - running_shared_total_distance))
-        print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
-        print("************************************")
-        print()
-            
+            res = prepare_final_matching(t)
+            if not res:
+                continue            
+        print_values()
+    
     except Exception as e:
         print("Exception :", e)
         exc_type, exc_obj, exc_tb = sys.exc_info()
