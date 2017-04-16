@@ -48,7 +48,7 @@ def main():
                     no_matching_temp_dict[d1_coords] =''
                     continue
 
-##                print("D1:", d1_coords)
+                print("D1:", d1_coords)
 ##                print("d1_passenger_count",d1_passenger_count)
 ##                print("s_d1_dist",s_d1_dist)
 ##                print("s_d1_time",s_d1_time)

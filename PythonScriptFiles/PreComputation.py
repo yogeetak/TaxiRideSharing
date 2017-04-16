@@ -10,7 +10,7 @@ import operator
 from datetime import datetime,timedelta
 
 header_row=['source_coords','dest1_coords','dest2_coords','pickup_time','passenger_count','ret_angle','source_D1_distance(in miles)','source_D1_time(in minutes)' ,'source_D1_avg_speed(per minute)']
-header_row.extend(['original_cost$2','original_cost$2.5','original_cost$3','original_cost$4','original_accepted_delay'])
+header_row.extend(['original_cost$2','original_cost$2.5','original_cost$3','original_cost$4','original_accepted_delay','new_50_accepted_delay'])
 header_row.extend(['D1_D2_distance(in miles)','D1_D2_time(in minutes)' ,'D1_D2_avg_speed(per minute)','D1_D2_cost$2','D1_D2_cost$2.5','D1_D2_cost$3','D1_D2_cost$4'])
 
 unique_dest=set()
@@ -22,7 +22,8 @@ source_coords= (-73.785924,40.645134)
 
 def create_unique_dest_list():
     
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
     ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         unique_dest=set() 
@@ -133,7 +134,8 @@ def main():
     print()
    
     ##Opening csv file to write pre computed data
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
     ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
@@ -185,6 +187,10 @@ def main():
                     original_accepted_delay = (source_D1_time * 30)/100
                 else:
                     original_accepted_delay = (source_D1_time * 50)/100
+
+                ##New acceptable delay
+                new_50_accepted_delay = (source_D1_time * 50)/100
+                    
                     
                 for dest_2 in time_interval_keys:
                      
@@ -192,7 +198,7 @@ def main():
                     if(dest_1 == dest_2):
                         ##Writing all pre computed values to csv file
                         temp_row=[source_coords,dest_1,' ',trip_dict[dest_1],passenger_dict[dest_1],'',source_D1_distance ,source_D1_time ,source_D1_avg_speed]
-                        temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay])    
+                        temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])    
                         temp_row.extend(['' ,'' ,'','','','',''])
                         writer.writerow(temp_row)
                         continue
@@ -219,7 +225,7 @@ def main():
                                                     
                     ##Writing all pre computed values to csv file 
                     temp_row=[source_coords,dest_1,dest_2,trip_dict[dest_1],passenger_dict[dest_1],round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
-                    temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay])
+                    temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])
                     temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
                     
                     writer.writerow(temp_row)

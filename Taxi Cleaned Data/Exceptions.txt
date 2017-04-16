@@ -106,3 +106,17 @@ Exception in calculating OSRM distances (-73.98145294, 40.76220322) (-73.9814834
 Exception in calculating OSRM distances (-73.98148346, 40.76216125) (-73.98145294, 40.76220322) float division by zero
 
 
+NEW RUN Jan 1- Jan 3
+Exception in calculating OSRM distances (-73.61265564, 40.7833786) (-73.6126709, 40.78338623) float division by zero
+Exception in calculating OSRM distances (-73.6126709, 40.78338623) (-73.61265564, 40.7833786) float division by zero
+Exception in calculating OSRM distances (-74.18161011, 40.68772888) (-74.18175507, 40.68775177) float division by zero
+Exception in calculating OSRM distances (-74.18175507, 40.68775177) (-74.18161011, 40.68772888) float division by zero
+Exception in calculating OSRM distances (-73.95018768, 40.77159119) (-73.95028687, 40.77164078) float division by zero
+Exception in calculating OSRM distances (-73.95028687, 40.77164078) (-73.95018768, 40.77159119) float division by zero
+Exception in calculating OSRM distances (-74.17688751, 40.69483948) (-74.28968048, 40.80046463) float division by zero
+Exception in calculating OSRM distances (-74.28968048, 40.80046463) (-74.17688751, 40.69483948) float division by zero
+Exception in calculating OSRM distances (-74.17710114, 40.69496536) (-74.18480682, 40.69028473) float division by zero
+Exception in calculating OSRM distances (-74.18480682, 40.69028473) (-74.17710114, 40.69496536) float division by zero
+Exception in calculating OSRM distances (-73.75318909, 40.6792717) (-73.75344849, 40.67938614) float division by zero
+Exception in calculating OSRM distances (-73.75344849, 40.67938614) (-73.75318909, 40.6792717) float division by zero
+
