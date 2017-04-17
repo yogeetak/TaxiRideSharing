@@ -3,17 +3,19 @@ import psycopg2
 from datetime import datetime,timedelta
 import sys, os
 import operator
+header_row=['source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','source_D2_distance(in miles)','source_D2_time(in minutes)']
+header_row.extend(['total_shared_distance','total_shared_time','Matched_NoMatched'])
 
 running_shared_total_distance = 0; running_shared_total_time=0;
 without_sharing_total_distance =0 ; without_sharing_total_time=0;
 original_trips={};original_trips_data={}
 final_no_pairing ={}
 temp_matching_dict={}
-temp_no_matching_dict = {}
 cursor = None
 final_pairing = {}
 final_single_rides={}
 single_trip_distance = 0; single_trip_time =0;
+csv_list=[]
 
 def create_db_conn():
     try:
@@ -117,8 +119,6 @@ def find_pairing(trip):
     
     if candidates is not None and len(candidates) > 0:
         message="Matched"
-    else:
-        candidates = [s_d1_dist, s_d1_time]
     return candidates, message
 
 def prepare_final_matching(t):
@@ -131,6 +131,9 @@ def prepare_final_matching(t):
                 final_single_rides[t] = 'Forced Alone'
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                ##Writing to CSV list
+                temp_row=['(-73.785924, 40.645134)', t,' ',original_trips_data[t][0],original_trips_data[t][1],'','','','',final_single_rides[t]]
+                csv_list.extend([temp_row])
                 return False
         
             total_travel_distance = 0
@@ -161,12 +164,14 @@ def prepare_final_matching(t):
                         no_rideshare_travel_dist = cands[4]
                         no_rideshare_travel_time = cands[5]
 
-            ##Adding selected D2 as FINAL PAIRING
             if d2 =='':
                 poss= [x[0] for x in temp_matching_dict[t]]
                 final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                ##Writing to CSV list
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
+                csv_list.extend([temp_row])
                 return False
 
             if d2 in final_pairing.values() or d2 in final_pairing:
@@ -174,18 +179,33 @@ def prepare_final_matching(t):
                 final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+                ##Writing to CSV list
+                #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
+                csv_list.extend([temp_row])
                 return False
             
+            ##Adding selected D2 as FINAL PAIRING
             final_pairing[t] = d2
             running_shared_total_distance   =   running_shared_total_distance   +   total_travel_distance
             running_shared_total_time       =   running_shared_total_time       +   total_travel_time
             without_sharing_total_distance  =   without_sharing_total_distance  +   no_rideshare_travel_dist
             without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
 
+            ##Writing to CSV list
+            #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','source_D2_distance(in miles)','source_D2_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
+            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
+            csv_list.extend([temp_row])
+
         else: ##Non Matched - Single Rides
             final_single_rides[t]   =   original_trips[t]
-            single_trip_distance    =   single_trip_distance    +   temp_no_matching_dict[t][0]
-            single_trip_time        =   single_trip_time        +   temp_no_matching_dict[t][1]
+            single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
+            single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
+
+            ##Writing to CSV list
+            #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
+            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',original_trips[t]]
+            csv_list.extend([temp_row])
         
     except Exception as e:
         print("Exception :", e)
@@ -227,6 +247,16 @@ def print_values():
     print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
     print("************************************")
     print()
+    print("************************************")
+    print("PERCENTAGE OF SHARED vs NON-SHARED",(round((((len(final_pairing)*2)/len(original_trips)) *100),2)))
+    print("************************************")
+    print()
+
+def write_to_csv():
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+        writer = csv.writer(csvwriterfile, dialect='excel')
+        writer.writerow(header_row)
+        writer.writerows(csv_list)
     
 def main():
     try:
@@ -264,11 +294,9 @@ def main():
 
                 if message is 'Matched':
                     temp_matching_dict[d1_coords] = candidates
-                else:
-                    temp_no_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time
-            if counter == 10:
+            if counter == 2:
                 break  #Delete to run for all rides in time window
 
         print("************************************")
@@ -285,6 +313,7 @@ def main():
             if not res:
                 continue            
         print_values()
+        write_to_csv()
     
     except Exception as e:
         print("Exception :", e)
