@@ -45,7 +45,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1
-        a= "select * from taxisharing.newprecomputedtable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
+        a= "select * from taxisharing.JanNewPreComputedTable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -67,7 +67,7 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.newtripsrequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.JanNewTripsRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
@@ -127,7 +127,9 @@ def prepare_final_matching(t):
 
     try:
         if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
-            if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
+##            if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
+            if (t in final_pairing or t in final_pairing.values()): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
+
                 final_single_rides[t] = 'Forced Alone'
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
@@ -198,6 +200,8 @@ def prepare_final_matching(t):
             csv_list.extend([temp_row])
 
         else: ##Non Matched - Single Rides
+            if t in final_pairing or final_pairing.values():
+                return False
             final_single_rides[t]   =   original_trips[t]
             single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
             single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
@@ -253,7 +257,8 @@ def print_values():
     print()
 
 def write_to_csv():
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
@@ -264,12 +269,12 @@ def main():
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.newtripsrequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripsRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.newtripsrequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripsRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -282,7 +287,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=5)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.newtripsrequests where pickup_time between %s and %s order by newtripsrequests.pickup_time asc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.JanNewTripsRequests where pickup_time between %s and %s order by JanNewTripsRequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Number of rides in time windown:", len(time_window))
             print("************************************")
