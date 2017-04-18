@@ -16,7 +16,6 @@ final_pairing = {}
 final_single_rides={}
 single_trip_distance = 0; single_trip_time =0;
 csv_list=[]
-
 def create_db_conn():
     try:
         global cursor
@@ -45,7 +44,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1
-        a= "select * from taxisharing.JanNewPreComputedTable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
+        a= "select * from taxisharing.janprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -67,7 +66,7 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.JanNewTripsRequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.JanNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
@@ -124,100 +123,12 @@ def find_pairing(trip):
 def prepare_final_matching(t):
     global running_shared_total_distance; global running_shared_total_time; global without_sharing_total_distance;
     global without_sharing_total_time; global single_trip_time; global single_trip_distance;
-
-    try:     
-        if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
-            total_travel_distance = 0
-            total_travel_time = 0
-            no_rideshare_travel_dist = 0
-            no_rideshare_travel_time = 0
-            d2=''
-
-            if len(temp_matching_dict[t]) == 1:  ##Implies only one candidate pairing
-                d2= temp_matching_dict[t][0][0]
-                total_travel_distance = temp_matching_dict[t][0][2]
-                total_travel_time = temp_matching_dict[t][0][3]
-                no_rideshare_travel_dist = temp_matching_dict[t][0][4]
-                no_rideshare_travel_time = temp_matching_dict[t][0][5]
-
-            else: # implies more than one candidate pairing, select the pairing with maximum saving
-                curr_saving=0
-                for cands in temp_matching_dict[t]:
-                    if cands[0] in final_pairing or cands[0] in final_pairing.values():
-                        continue
-            
-                    temp_curr_saving = cands[1]
-                    if(temp_curr_saving > curr_saving):
-                        d2= cands[0]
-                        curr_saving = temp_curr_saving
-                        total_travel_distance = cands[2]
-                        total_travel_time = cands[3]
-                        no_rideshare_travel_dist = cands[4]
-                        no_rideshare_travel_time = cands[5]
-
-            if d2 =='': ##No probable Matching Found for t
-                poss= [x[0] for x in temp_matching_dict[t]]
-                final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
-                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
-                csv_list.extend([temp_row])
-                if d2 in final_single_rides:
-                    del final_single_rides[d2]
-                return False
-            
-            ##Adding selected D2 as FINAL PAIRING
-            final_pairing[t] = d2
-            ##Remove from single pairing(if exists):
-            if d2 in final_single_rides:
-                del final_single_rides[d2]
-            if t in final_single_rides:
-                del final_single_rides[t]
-                
-            running_shared_total_distance   =   running_shared_total_distance   +   total_travel_distance
-            running_shared_total_time       =   running_shared_total_time       +   total_travel_time
-            without_sharing_total_distance  =   without_sharing_total_distance  +   no_rideshare_travel_dist
-            without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
-
-            ##Writing to CSV list
-            #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','source_D2_distance(in miles)','source_D2_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
-            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
-            csv_list.extend([temp_row])
-
-        else: ##Non Matched - Single Rides
-            final_single_rides[t]   =   original_trips[t]
-            single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-            single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-
-            ##Writing to CSV list
-            #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
-            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',original_trips[t]]
-            csv_list.extend([temp_row])
-        
-    except Exception as e:
-        print("Exception :", e)
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(exc_type, fname, exc_tb.tb_lineno)
-        return False
-    return True
-
-def prepare_final_matching_1(t):
-    global running_shared_total_distance; global running_shared_total_time; global without_sharing_total_distance;
-    global without_sharing_total_time; global single_trip_time; global single_trip_distance;
-
+    
     try:
-        if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
-            if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1): ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
-                final_single_rides[t] = 'Forced Alone'
-                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)', t,' ',original_trips_data[t][0],original_trips_data[t][1],'','','','',final_single_rides[t]]
-                csv_list.extend([temp_row])
-                return False
-        
+        if (t in final_pairing or t in final_pairing.values()):  ##If already paired, return
+            return
+            
+        if original_trips[t] == 'Matched':         
             total_travel_distance = 0
             total_travel_time = 0
             no_rideshare_travel_dist = 0
@@ -254,7 +165,7 @@ def prepare_final_matching_1(t):
                 ##Writing to CSV list
                 temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
-                return False
+                return 
 
             if d2 in final_pairing.values() or d2 in final_pairing:
                 poss= [x[0] for x in temp_matching_dict[t]]
@@ -262,10 +173,13 @@ def prepare_final_matching_1(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
                 temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
-                return False
+                return 
+            
+            #If d2 is not present in this time window then neglect the matching
+            if d2 not in original_trips_data:
+                return
             
             ##Adding selected D2 as FINAL PAIRING, Removing from single ride dictionary
             final_pairing[t] = d2
@@ -280,15 +194,10 @@ def prepare_final_matching_1(t):
             without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
 
             ##Writing to CSV list
-            #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','source_D2_distance(in miles)','source_D2_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
             temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
             csv_list.extend([temp_row])
 
         else: ##Non Matched - Single Rides
-            if t in final_pairing 
-                del final_pairing[t]
-            ##if t in final_pairing.values():
-              ##      del values
             final_single_rides[t]   =   original_trips[t]
             single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
             single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
@@ -303,61 +212,80 @@ def prepare_final_matching_1(t):
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print(exc_type, fname, exc_tb.tb_lineno)
-        return False
-    return True
+        return 
+    return 
 
-def print_values():
+def print_values(): 
+    try:
+        new_final_single_rides={}
+        ##Any unaccounted trips, add to single ride dict
+        for i in original_trips:
+            if i not in final_pairing and i not in final_pairing.values() and i not in final_single_rides:
+                final_single_rides[i] = 'Could not find match'
+                
+        ##Removing duplicates that are matched but also in single rides dict
+        output_final_single_rides = set(final_single_rides)
+        output_final_single_rides.update(final_pairing.values())
+        output_final_single_rides.update(final_pairing.keys())
+        if len(output_final_single_rides) !=  (len(final_pairing) + len(final_pairing.values()) + len(final_single_rides)):
+            print("************************************")
+            print("DUPLICATE VALUES IN SINGLE RIDES AND SHARED RIDES")
+            print("************************************")
 
-    a=set(final_pairing.values())
-    if len(final_pairing) != len(a):
+            temp_final_single_rides = final_single_rides.copy()
+            for val in temp_final_single_rides:
+                if val in temp_final_single_rides:
+                    del final_single_rides[val]
+                if temp_final_single_rides[val] in temp_final_single_rides.values():
+                    del final_single_rides[val]
+            
+        a=set(final_pairing.values())
+        if len(final_pairing) != len(a):
+            print("************************************")
+            print("DUPLICATE VALUES POSSIBLE IN FINAL PAIRING SET")
+            print("************************************")
+
+        b=set(final_single_rides)
+        if len(final_single_rides) != len(b):
+            print("************************************")
+            print("DUPLICATE VALUES POSSIBLE IN FINAL SINGLE RIDES SET")
+            print("************************************")
+        
         print("************************************")
-        print("DUPLICATE VALUES POSSIBLE IN FINAL PAIRING SET")
+        print("Total Number of Rides Considered (With Duplicates):", total_no_of_rides_in_run)
+        print("Total Number of Unique Rides Considered (Without Duplicates):", len(original_trips))
+        print("Matched & Single Recieved from algorithm:", (len(final_pairing)*2 + len(final_single_rides)))
+        print()
+        print("Number of matches", len(final_pairing))
+        print("Number of no matches found(Single Trips)", len(final_single_rides))
+        print()
+        print("Total Distance Without Ride Sharing:",without_sharing_total_distance)
+        print("Total Time Without Ride Sharing:",without_sharing_total_time)
+        print()
+        print("Total Distance With Ride Sharing:",running_shared_total_distance)
+        print("Total Time WithRide Sharing:",running_shared_total_time)
+        print()
+        print("Total Distance With Ride Sharing (Single Trips Considered):",single_trip_distance)
+        print("Total Time WithRide Sharing (Single Trips Considered):",single_trip_time)
+        print()
         print("************************************")
-
-    b=set(final_single_rides)
-    if len(final_single_rides) != len(b):
+        print("TOTAL SAVING (DISTANCE in MILES) : ",(without_sharing_total_distance - running_shared_total_distance))
+        print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
         print("************************************")
-        print("DUPLICATE VALUES POSSIBLE IN FINAL SINGLE RIDES SET")
+        print()
         print("************************************")
-    
-    print("************************************")
-    print("Total Number of Rides Considered (With Duplicates):", total_no_of_rides_in_run)
-    print("Total Number of Unique Rides Considered (Without Duplicates):", len(original_trips))
-    print("Matched & Single Recieved from algorithm:", (len(final_pairing)*2 + len(final_single_rides)))
-    print()
-    print("Number of matches", len(final_pairing))
-    print("Number of no matches found(Single Trips)", len(final_single_rides))
-    print()
-    print("Total Distance Without Ride Sharing:",without_sharing_total_distance)
-    print("Total Time Without Ride Sharing:",without_sharing_total_time)
-    print()
-    print("Total Distance With Ride Sharing:",running_shared_total_distance)
-    print("Total Time WithRide Sharing:",running_shared_total_time)
-    print()
-    print("Total Distance With Ride Sharing (Single Trips Considered):",single_trip_distance)
-    print("Total Time WithRide Sharing (Single Trips Considered):",single_trip_time)
-    print()
-    print("************************************")
-    print("TOTAL SAVING (DISTANCE in MILES) : ",(without_sharing_total_distance - running_shared_total_distance))
-    print("TOTAL SAVING (TIME in MINUTES) : ",(without_sharing_total_time - running_shared_total_time))
-    print("************************************")
-    print()
-    print("************************************")
-    print("PERCENTAGE OF SHARED vs NON-SHARED",(round((((len(final_pairing)*2)/total_no_of_rides_in_run) *100),2)))
-    print("************************************")
-    print()
-
-    for i in original_trips:
-        if i not in final_pairing and i not in final_pairing.values() and i not in final_single_rides:
-            print(i, original_trips[i])
-            if i in temp_matching_dict:
-                print(temp_matching_dict[i])
-            else:
-                print("No Candidates")
-
+        print("PERCENTAGE OF SHARED vs NON-SHARED",(round((((len(final_pairing)*2)/total_no_of_rides_in_run) *100),2)))
+        print("************************************")
+        print()
+    except Exception as e:
+        print("Exception :", e)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
+ 
 def write_to_csv():
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
@@ -369,12 +297,12 @@ def main():
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripsRequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripsRequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -387,7 +315,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.JanNewTripsRequests where pickup_time between %s and %s order by JanNewTripsRequests.pickup_time asc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.JanNewTripRequests where pickup_time between %s and %s order by JanNewTripRequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
@@ -403,7 +331,7 @@ def main():
                     temp_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time + timedelta(seconds=1)
-            if counter == 15:
+            if counter == 100:
                 break  #Delete to run for all rides in time window
         print(endtime)
         print(cur_end_time)
@@ -418,9 +346,8 @@ def main():
         
         for tup in sorted_original_trips:
             t=tup[0]
-            res = prepare_final_matching_1(t)
-            if not res:
-                continue            
+            res = prepare_final_matching(t)
+                   
         print_values()
         write_to_csv()
     
