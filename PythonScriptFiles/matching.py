@@ -44,7 +44,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1
-        a= "select * from taxisharing.janprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
+        a= "select * from taxisharing.febprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -66,7 +66,7 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.JanNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.FebNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
@@ -284,8 +284,8 @@ def print_values():
         print(exc_type, fname, exc_tb.tb_lineno)
  
 def write_to_csv():
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_feb.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
@@ -297,12 +297,12 @@ def main():
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripRequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.FebNewTripRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripRequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.FebNewTripRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -315,7 +315,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.JanNewTripRequests where pickup_time between %s and %s order by JanNewTripRequests.pickup_time asc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.FebNewTripRequests where pickup_time between %s and %s order by FebNewTripRequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
@@ -331,8 +331,8 @@ def main():
                     temp_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time + timedelta(seconds=1)
-            if counter == 100:
-                break  #Delete to run for all rides in time window
+            #if counter == 1:
+            #break  #Delete to run for all rides in time window
         print(endtime)
         print(cur_end_time)
 
