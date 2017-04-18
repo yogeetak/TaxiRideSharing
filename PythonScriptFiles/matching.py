@@ -45,7 +45,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1
-        a= "select * from taxisharing.newprecomputedtable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
+        a= "select * from taxisharing.JanNewPreComputedTable where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -67,12 +67,12 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.newtripsrequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.JanNewTripsRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
             if len(d2_rows) == 0 or d2_rows == None:
-                message = d1_coords + ": D2: " +d2_coords + "row not found in newtripsrequests table"
+                message = d1_coords + ": D2: " +d2_coords + "row not found in NewTripsRequests table"
                 candidates = None
                 continue
             
@@ -127,16 +127,6 @@ def prepare_final_matching(t):
 
     try:
         if original_trips[t] == 'Matched': ##retrieve candidate pairing from temp_matching_dict
-            ##Forced Singles: Pair is already made and there are no more candidate pairs to check with
-            if (t in final_pairing or t in final_pairing.values()) and (len(temp_matching_dict[t]) == 1) or (t in final_pairing or t in final_pairing.values()): 
-                final_single_rides[t] = 'Forced Alone'
-                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)', t,' ',original_trips_data[t][0],original_trips_data[t][1],'','','','',final_single_rides[t]]
-                csv_list.extend([temp_row])
-                return False
-        
             total_travel_distance = 0
             total_travel_time = 0
             no_rideshare_travel_dist = 0
@@ -165,25 +155,12 @@ def prepare_final_matching(t):
                         no_rideshare_travel_dist = cands[4]
                         no_rideshare_travel_time = cands[5]
 
-            if d2 =='':
+            if d2 =='': ##No probable Matching Found for t
                 poss= [x[0] for x in temp_matching_dict[t]]
                 final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
-                csv_list.extend([temp_row])
-                if d2 in final_single_rides:
-                    del final_single_rides[d2]
-                return False
-
-            if d2 in final_pairing.values() or d2 in final_pairing:
-                poss= [x[0] for x in temp_matching_dict[t]]
-                final_single_rides[t] = "Probable Match already taken, no other matches found from candidates :" + str(poss)
-                single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
-                single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
-                ##Writing to CSV list
-                #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
                 temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
                 if d2 in final_single_rides:
@@ -208,8 +185,6 @@ def prepare_final_matching(t):
             csv_list.extend([temp_row])
 
         else: ##Non Matched - Single Rides
-            if t in final_pairing or final_pairing.values():
-                return False
             final_single_rides[t]   =   original_trips[t]
             single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
             single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
@@ -242,9 +217,10 @@ def print_values():
         print("************************************")
       
     print("************************************")
-    print("Total Number of Rides Considered:", total_no_of_rides_in_run)
-    ##FOR VIDEO:
-    print("Total Number of Rides Considered (Temp Run):", (len(final_pairing)*2 + len(final_single_rides)))
+    print("Total Number of Rides Considered (With Duplicates):", total_no_of_rides_in_run)
+    print("Total Number of Unique Rides Considered (Without Duplicates):", len(original_trips))
+    print("Matched & Single Recieved from algorithm:", (len(final_pairing)*2 + len(final_single_rides)))
+    print()
     print("Number of matches", len(final_pairing))
     print("Number of no matches found(Single Trips)", len(final_single_rides))
     print()
@@ -268,8 +244,8 @@ def print_values():
     print()
 
 def write_to_csv():
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
@@ -281,12 +257,12 @@ def main():
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.newtripsrequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripsRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.newtripsrequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripsRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -299,7 +275,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=5)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.newtripsrequests where pickup_time between %s and %s order by newtripsrequests.pickup_time asc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.JanNewTripsRequests where pickup_time between %s and %s order by JanNewTripsRequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Number of rides in time windown:", len(time_window))
             print("************************************")
@@ -327,6 +303,10 @@ def main():
         
         for tup in sorted_original_trips:
             t=tup[0]
+            #D1 is aleady matched and there are no more probable candidates to match with
+            if (t in final_pairing or t in final_pairing.values()) and (t in temp_matching_dict) and (len(temp_matching_dict[t]) == 1):
+                continue
+             
             res = prepare_final_matching(t)
             if not res:
                 continue            
