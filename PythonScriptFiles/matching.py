@@ -3,7 +3,7 @@ import psycopg2
 from datetime import datetime,timedelta
 import sys, os
 import operator
-header_row=['source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','source_D2_distance(in miles)','source_D2_time(in minutes)']
+header_row=['source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','poolsize_time_window','peak_nonpeak_hours','source_D2_distance(in miles)','source_D2_time(in minutes)']
 header_row.extend(['total_shared_distance','total_shared_time','Matched_NoMatched'])
 
 running_shared_total_distance = 0; running_shared_total_time=0;
@@ -44,7 +44,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1
-        a= "select * from taxisharing.febprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
+        a= "select * from taxisharing.janprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay asc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -66,7 +66,7 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.FebNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.JanNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
@@ -163,7 +163,7 @@ def prepare_final_matching(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
                 return 
 
@@ -173,7 +173,7 @@ def prepare_final_matching(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',final_single_rides[t]]
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
                 return 
             
@@ -194,7 +194,7 @@ def prepare_final_matching(t):
             without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
 
             ##Writing to CSV list
-            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
+            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
             csv_list.extend([temp_row])
 
         else: ##Non Matched - Single Rides
@@ -204,7 +204,7 @@ def prepare_final_matching(t):
 
             ##Writing to CSV list
             #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
-            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],' ',' ','','',original_trips[t]]
+            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',original_trips[t]]
             csv_list.extend([temp_row])
         
     except Exception as e:
@@ -284,8 +284,8 @@ def print_values():
         print(exc_type, fname, exc_tb.tb_lineno)
  
 def write_to_csv():
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_feb.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_feb.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
@@ -297,12 +297,12 @@ def main():
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.FebNewTripRequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.FebNewTripRequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -310,20 +310,25 @@ def main():
 
         cur_start_time=starttime
         counter =0
+        hours=''
         while(endtime > cur_start_time):
             counter = counter + 1
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.FebNewTripRequests where pickup_time between %s and %s order by FebNewTripRequests.pickup_time asc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.JanNewTripRequests where pickup_time between %s and %s order by JanNewTripRequests.pickup_time asc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
             print("************************************")
             total_no_of_rides_in_run =  total_no_of_rides_in_run + len(time_window)
+            if len(time_window) >=35:
+                hours='peak'
+            else:
+                hours='nonpeak'
             for trip in time_window:
                 d1_coords = trip[2]
-                original_trips_data[d1_coords] = [trip[5] , trip[6]]     ##FORMAT : [s_d1_dist, s_d1_time]
+                original_trips_data[d1_coords] = [trip[5] , trip[6], len(time_window),hours]     ##FORMAT : [s_d1_dist, s_d1_time]
                 candidates, message = find_pairing(trip)
                 original_trips[d1_coords]  = message
                 
@@ -331,8 +336,8 @@ def main():
                     temp_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time + timedelta(seconds=1)
-            #if counter == 1:
-            #break  #Delete to run for all rides in time window
+            if counter == 5:
+                break  #Delete to run for all rides in time window
         print(endtime)
         print(cur_end_time)
 
