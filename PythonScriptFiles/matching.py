@@ -2,8 +2,9 @@ import csv
 import psycopg2
 from datetime import datetime,timedelta
 import sys, os
+import time
 import operator
-header_row=['source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','poolsize_time_window','peak_nonpeak_hours','source_D2_distance(in miles)','source_D2_time(in minutes)']
+header_row=['source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','poolsize_time_window','peak_nonpeak_hours','pool_number','processing_time','source_D2_distance(in miles)','source_D2_time(in minutes)']
 header_row.extend(['total_shared_distance','total_shared_time','Matched_NoMatched'])
 
 running_shared_total_distance = 0; running_shared_total_time=0;
@@ -16,6 +17,8 @@ final_pairing = {}
 final_single_rides={}
 single_trip_distance = 0; single_trip_time =0;
 csv_list=[]
+processing_time={}
+processing_time_running=0
 def create_db_conn():
     try:
         global cursor
@@ -125,6 +128,9 @@ def prepare_final_matching(t):
     global without_sharing_total_time; global single_trip_time; global single_trip_distance;
     
     try:
+        ##retriving processing time
+        pross_time=processing_time[original_trips_data[t][4]]
+                
         if (t in final_pairing or t in final_pairing.values()):  ##If already paired, return
             return
             
@@ -163,7 +169,7 @@ def prepare_final_matching(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',final_single_rides[t]]
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[t][4],pross_time,' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
                 return 
 
@@ -173,7 +179,7 @@ def prepare_final_matching(t):
                 single_trip_distance    =   single_trip_distance    +   original_trips_data[t][0]
                 single_trip_time        =   single_trip_time        +   original_trips_data[t][1]
                 ##Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',final_single_rides[t]]
+                temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[t][4],pross_time,' ',' ','','',final_single_rides[t]]
                 csv_list.extend([temp_row])
                 return 
             
@@ -194,7 +200,7 @@ def prepare_final_matching(t):
             without_sharing_total_time      =   without_sharing_total_time      +   no_rideshare_travel_time
 
             ##Writing to CSV list
-            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
+            temp_row=['(-73.785924, 40.645134)',t,d2,original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[t][4],pross_time,original_trips_data[d2][0],original_trips_data[d2][1],total_travel_distance,total_travel_time,original_trips[t]]
             csv_list.extend([temp_row])
 
         else: ##Non Matched - Single Rides
@@ -204,7 +210,7 @@ def prepare_final_matching(t):
 
             ##Writing to CSV list
             #'source_coords','dest1_coords','dest2_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','total_shared_distance','total_shared_time','Matched\NoMatched'
-            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],' ',' ','','',original_trips[t]]
+            temp_row=['(-73.785924, 40.645134)',t ,' ',original_trips_data[t][0],original_trips_data[t][1],original_trips_data[t][2],original_trips_data[t][3],original_trips_data[t][4],pross_time,' ',' ','','',original_trips[t]]
             csv_list.extend([temp_row])
         
     except Exception as e:
@@ -252,8 +258,7 @@ def print_values():
             print("************************************")
         
         print("************************************")
-        print("Total Number of Rides Considered (With Duplicates):", total_no_of_rides_in_run)
-        print("Total Number of Unique Rides Considered (Without Duplicates):", len(original_trips))
+        print("Total Number of Rides Considered:", total_no_of_rides_in_run)
         print("Matched & Single Recieved from algorithm:", (len(final_pairing)*2 + len(final_single_rides)))
         print()
         print("Number of matches", len(final_pairing))
@@ -277,6 +282,11 @@ def print_values():
         print("PERCENTAGE OF SHARED vs NON-SHARED",(round((((len(final_pairing)*2)/total_no_of_rides_in_run) *100),2)))
         print("************************************")
         print()
+        print("************************************")
+        print("Algorithm Matching Processing Time:", processing_time_running)
+        print("************************************")
+        print()
+     
     except Exception as e:
         print("Exception :", e)
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -293,7 +303,7 @@ def write_to_csv():
 def main():
     try:
         global cursor
-        global total_no_of_rides_in_run
+        global total_no_of_rides_in_run;global processing_time_running;
         if cursor is None:
             cursor = create_db_conn()
             
@@ -312,7 +322,9 @@ def main():
         counter =0
         hours=''
         while(endtime > cur_start_time):
+            tic = time.clock()
             counter = counter + 1
+            processing_time[counter] = tic
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
@@ -320,7 +332,6 @@ def main():
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
-            print("************************************")
             total_no_of_rides_in_run =  total_no_of_rides_in_run + len(time_window)
             if len(time_window) >=35:
                 hours='peak'
@@ -328,7 +339,7 @@ def main():
                 hours='nonpeak'
             for trip in time_window:
                 d1_coords = trip[2]
-                original_trips_data[d1_coords] = [trip[5] , trip[6], len(time_window),hours]     ##FORMAT : [s_d1_dist, s_d1_time]
+                original_trips_data[d1_coords] = [trip[5] , trip[6], len(time_window),hours,counter]     ##FORMAT : [s_d1_dist, s_d1_time, poollength, peak\nonpeak,poolnumber]
                 candidates, message = find_pairing(trip)
                 original_trips[d1_coords]  = message
                 
@@ -336,6 +347,11 @@ def main():
                     temp_matching_dict[d1_coords] = candidates
                     
             cur_start_time = cur_end_time + timedelta(seconds=1)
+            toc = time.clock()
+            processing_time[counter]= toc-tic
+            processing_time_running = processing_time_running + processing_time[counter]
+            print("Total Processing Time for this window",toc-tic)
+            print("************************************")
             if counter == 5:
                 break  #Delete to run for all rides in time window
         print(endtime)
@@ -348,13 +364,20 @@ def main():
         print()
 
         sorted_original_trips = sorted(original_trips.items(), key=operator.itemgetter(0))
-        
+
+        prosresults = time.clock()
         for tup in sorted_original_trips:
             t=tup[0]
             res = prepare_final_matching(t)
-                   
+
+        prosresults_end = time.clock()
         print_values()
         write_to_csv()
+        processing_time_running = processing_time_running + (prosresults_end - prosresults)
+        print("************************************")
+        print("After printing results Processing Time:", processing_time_running)
+        print("************************************")
+     
     
     except Exception as e:
         print("Exception :", e)

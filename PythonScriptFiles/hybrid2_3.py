@@ -2,8 +2,9 @@ import csv
 import psycopg2
 from datetime import datetime,timedelta
 import sys, os
+import time
 import operator
-header_row=['source_coords','dest1_coords','dest2_coords','dest3_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','poolsize_time_window','peak_nonpeak_hours','source_D2_distance(in miles)','source_D2_time(in minutes)']
+header_row=['source_coords','dest1_coords','dest2_coords','dest3_coords','source_D1_distance(in miles)','source_D1_time(in minutes)','poolsize_time_window','peak_nonpeak_hours','pool_number','processing_time','source_D2_distance(in miles)','source_D2_time(in minutes)']
 header_row.extend(['source_D3_distancw(in miles)','source_D3_time(in minutes)','total_shared_distance','total_shared_time','Matched_NoMatched'])
 
 running_shared_total_distance = 0; running_shared_total_time=0;
@@ -17,7 +18,8 @@ final_pairing = {};
 final_single_rides={}
 single_trip_distance = 0; single_trip_time =0;
 csv_list=[]
-
+processing_time={}
+processing_time_running = 0
 def create_db_conn():
     try:
         global cursor
@@ -69,6 +71,8 @@ def find_pairing(trip):
 
             if d2_coords in final_pairing or d2_coords in final_pairing.values():
                 continue
+            if d1_coords not in original_trips_data  and d2_coords not in original_trips_data:
+                continue
             
             ##C1: Passenger Count Constraint
             passenger_count = d1_passenger_count + d2_passenger_count
@@ -101,6 +105,7 @@ def find_pairing(trip):
             val = third_pairing(d1_coords,d2_coords,passenger_count,d2_trip,d1_d2_time,d1_d2_dist,s_d1_time,s_d1_dist,s_d2_dist,d1_original_accepted_delay)
             
             if not val:
+                prostime = processing_time[original_trips_data[d1_coords][4]]
                 two_pairs[d2_coords] = ''
                 #match d1,d2
                 final_pairing[d1_coords] = d2_coords
@@ -109,7 +114,7 @@ def find_pairing(trip):
                 running_shared_total_distance = running_shared_total_distance + s_d1_dist + d1_d2_dist
                 running_shared_total_time = running_shared_total_time + s_d1_time + d1_d2_time
                 #Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',d1_coords,d2_coords,'',s_d1_dist,s_d1_time,original_trips_data[d1_coords][2],original_trips_data[d1_coords][3],s_d2_dist,s_d2_time,'','',(s_d1_dist + d1_d2_dist),(s_d1_time + d1_d2_time),'2_Matched']
+                temp_row=['(-73.785924, 40.645134)',d1_coords,d2_coords,'',s_d1_dist,s_d1_time,original_trips_data[d1_coords][2],original_trips_data[d1_coords][3],original_trips_data[d1_coords][4],prostime,s_d2_dist,s_d2_time,'','',(s_d1_dist + d1_d2_dist),(s_d1_time + d1_d2_time),'2_Matched']
                 csv_list.extend([temp_row])
                 
     except Exception as e:
@@ -137,6 +142,8 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
             d3_passenger_count = row[5]
             d2_d3_time = row[16]
             d2_d3_dist= row[15]
+
+            prostime =processing_time[original_trips_data[d1_coords][4]]
             
             if d1_coords in final_pairing or d1_coords in final_pairing.values():
                 continue
@@ -149,6 +156,9 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
             if d2_coords in all_paired_dest:
                 continue
             if d3_coords in all_paired_dest:
+                continue
+
+            if d1_coords not in original_trips_data  and d2_coords not in original_trips_data and d3_coords not in original_trips_data:
                 continue
             
             str1 = [d1_coords,d2_coords]
@@ -200,7 +210,7 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
                     running_shared_total_distance = running_shared_total_distance + total_travel_distance
                     running_shared_total_time = running_shared_total_time + total_travel_time
                     #Writing to CSV list
-                    temp_row=['(-73.785924, 40.645134)',d1_coords,d2_coords,d3_coords,s_d1_dist,s_d1_time,original_trips_data[d1_coords][2],original_trips_data[d1_coords][3],s_d2_dist,s_d2_time,s_d3_dist,s_d3_time,total_travel_distance,total_travel_time,'3_Matched']
+                    temp_row=['(-73.785924, 40.645134)',d1_coords,d2_coords,d3_coords,s_d1_dist,s_d1_time,original_trips_data[d1_coords][2],original_trips_data[d1_coords][3],original_trips_data[d1_coords][4],prostime,s_d2_dist,s_d2_time,s_d3_dist,s_d3_time,total_travel_distance,total_travel_time,'3_Matched']
                     csv_list.extend([temp_row])
            
     except Exception as e:
@@ -218,12 +228,13 @@ def print_values():
 
         ##Any unmatched trips, add to single ride dict
         for i in original_trips_data:
+            prostime = processing_time[original_trips_data[i][4]]
             if i not in all_paired_dest:
                 final_single_rides[i] = 'Could not find match'
                 single_trip_distance = single_trip_distance + original_trips_data[i][0]
                 single_trip_time = single_trip_time + original_trips_data[i][1]
                 #Writing to CSV list
-                temp_row=['(-73.785924, 40.645134)',i,'','',original_trips_data[i][0],original_trips_data[i][1],original_trips_data[i][2],original_trips_data[i][3],'','','','','','','SingleRides']
+                temp_row=['(-73.785924, 40.645134)',i,'','',original_trips_data[i][0],original_trips_data[i][1],original_trips_data[i][2],original_trips_data[i][3],original_trips_data[i][4],prostime,'','','','','','','SingleRides']
                 csv_list.extend([temp_row])
                 
         print("************************************")
@@ -255,6 +266,10 @@ def print_values():
         print("PERCENTAGE OF SHARED vs NON-SHARED",round(saving*100,2))
         print("************************************")
         print()
+        print("************************************")
+        print("Algorithm Matching Processing Time:", processing_time_running)
+        print("************************************")
+        print()        
     except Exception as e:
         print("Exception :", e)
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -270,7 +285,7 @@ def write_to_csv():
     
 def main():
     try:
-        global cursor
+        global cursor;global processing_time_running;
         global total_no_of_rides_in_run; global without_sharing_total_distance; global without_sharing_total_time; 
         if cursor is None:
             cursor = create_db_conn()
@@ -290,7 +305,9 @@ def main():
         counter =0
         hours=''
         while(endtime > cur_start_time):
+            tic=time.clock()
             counter = counter + 1
+            processing_time[counter]=tic
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
@@ -298,7 +315,6 @@ def main():
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
-            print("************************************")
             total_no_of_rides_in_run =  total_no_of_rides_in_run + len(time_window)
             if len(time_window) >=35:
                 hours='peak'
@@ -306,12 +322,17 @@ def main():
                 hours='nonpeak'
             for trip in time_window:
                 d1_coords = trip[2]
-                original_trips_data[d1_coords] = [trip[5] , trip[6],len(time_window),hours]     ##FORMAT : [s_d1_dist, s_d1_time]
+                original_trips_data[d1_coords] = [trip[5] , trip[6],len(time_window),hours,counter]     ##FORMAT : [s_d1_dist, s_d1_time,poolsize,peaknonpeak,poolnumber]
                 without_sharing_total_distance = without_sharing_total_distance + trip[5]
                 without_sharing_total_time = without_sharing_total_time + trip[6]
                 find_pairing(trip)
                 
             cur_start_time = cur_end_time + timedelta(seconds=1)
+            toc=time.clock()
+            processing_time[counter]=toc-tic
+            processing_time_running = processing_time_running + processing_time[counter]
+            print("Total Processing Time for this Time Window", toc-tic)
+            print("************************************")
             if counter == 5:
                 break  #Delete to run for all rides in time window
         print(endtime)
