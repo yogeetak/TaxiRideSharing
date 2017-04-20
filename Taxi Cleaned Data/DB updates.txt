@@ -25,3 +25,34 @@ COPY taxisharing.FebNewTripRequests  (id,source_coords , dest1_coords,pickup_tim
 COPY taxisharing.JanPrecomputedData (id,source_coords , dest1_coords,dest2_coords ,pickup_time ,passenger_count,ret_angle ,	source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay,D1_D2_distance_in_miles,D1_D2_time_in_minutes, D1_D2_avg_speed_per_minute,D1_D2_cost_$_2,D1_D2_cost_$_2_point_5,D1_D2_cost_$_3,D1_D2_cost_$_4) FROM 'C:\Users\ykutta2\Desktop\Jan_Precomputed_Data.csv' DELIMITER ',' CSV HEADER;
 
 COPY taxisharing.FebPrecomputedData (id,source_coords , dest1_coords,dest2_coords ,pickup_time ,passenger_count,ret_angle ,	source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay,D1_D2_distance_in_miles,D1_D2_time_in_minutes, D1_D2_avg_speed_per_minute,D1_D2_cost_$_2,D1_D2_cost_$_2_point_5,D1_D2_cost_$_3,D1_D2_cost_$_4) FROM 'C:\Users\ykutta2\Desktop\Feb_Precomputed_Data.csv' DELIMITER ',' CSV HEADER;
+
+
+
+
+Setting up DB from precomputed csv:
+
+##FEB Week 2
+
+Create table taxisharing.Feb2PrecomputedCleanData (ID serial, source_coords VARCHAR(50), dest1_coords VARCHAR(50),	dest2_coords VARCHAR(50),pickup_time timestamp,passenger_count int,	ret_angle numeric(6,3),	source_D1_distance_in_miles numeric(10,5), source_D1_time_in_minutes numeric(6,3),	source_D1_avg_speed_per_minute numeric(6,3), original_cost_$_2 numeric(5,2), original_cost$_2_point_5  numeric(5,2), 	original_cost_$_3 numeric(5,2), original_cost_$_4 numeric(5,2), original_accepted_delay  numeric(6,3), 	D1_D2_distance_in_miles  numeric(10,5), 	D1_D2_time_in_minutes  numeric(6,3), 	D1_D2_avg_speed_per_minute  numeric(6,3), 	D1_D2_cost_$_2  numeric(5,2),	D1_D2_cost_$_2_point_5  numeric(5,2),	D1_D2_cost_$_3  numeric(5,2),	D1_D2_cost_$_4  numeric(5,2));
+
+\COPY taxisharing.Feb2PrecomputedCleanData (source_coords , dest1_coords,dest2_coords ,pickup_time ,passenger_count,ret_angle ,	source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay,D1_D2_distance_in_miles,D1_D2_time_in_minutes, D1_D2_avg_speed_per_minute,D1_D2_cost_$_2,D1_D2_cost_$_2_point_5,D1_D2_cost_$_3,D1_D2_cost_$_4) FROM 'C:\Users\ykutta2\Desktop\precomps\PreComputed_febweek2_part1.csv' CSV HEADER  DELIMITER ',';
+\COPY taxisharing.Feb2PrecomputedCleanData (source_coords , dest1_coords,dest2_coords ,pickup_time ,passenger_count,ret_angle ,	source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay,D1_D2_distance_in_miles,D1_D2_time_in_minutes, D1_D2_avg_speed_per_minute,D1_D2_cost_$_2,D1_D2_cost_$_2_point_5,D1_D2_cost_$_3,D1_D2_cost_$_4) FROM 'C:\Users\ykutta2\Desktop\precomps\PreComputed_febweek2_part2.csv' CSV HEADER  DELIMITER ',';
+delete from Feb2PrecomputedCleanData where passenger_count >=4;
+select count(*) from taxisharing.Feb2PrecomputedCleanData
+
+
+Create table taxisharing.Feb2NewTripRequests (ID serial, source_coords VARCHAR(50), dest1_coords VARCHAR(50),dest2_coords VARCHAR(50),pickup_time timestamp,passenger_count int,	ret_angle numeric(6,3),	source_D1_distance_in_miles numeric(10,5), source_D1_time_in_minutes numeric(6,3),	source_D1_avg_speed_per_minute numeric(6,3), original_cost_$_2 numeric(5,2), original_cost$_2_point_5  numeric(5,2), 	original_cost_$_3 numeric(5,2), original_cost_$_4 numeric(5,2), original_accepted_delay  numeric(6,3), 	D1_D2_distance_in_miles  numeric(10,5), 	D1_D2_time_in_minutes  numeric(6,3), 	D1_D2_avg_speed_per_minute  numeric(6,3), 	D1_D2_cost_$_2  numeric(5,2),	D1_D2_cost_$_2_point_5  numeric(5,2),	D1_D2_cost_$_3  numeric(5,2),	D1_D2_cost_$_4  numeric(5,2));
+insert into taxisharing.Feb2NewTripRequests select * from taxisharing.Feb2PrecomputedCleanData;
+delete from taxisharing.Feb2NewTripRequests where dest2_coords <> ' ';
+select count(*) from taxisharing.Feb2NewTripRequests;																																													  
+ALTER table taxisharing.Feb2NewTripRequests  DROP COLUMN dest2_coords, DROP COLUMN ret_angle,DROP COLUMN D1_D2_distance_in_miles,DROP COLUMN D1_D2_time_in_minutes,DROP COLUMN D1_D2_avg_speed_per_minute,DROP COLUMN D1_D2_cost_$_2,DROP COLUMN 	D1_D2_cost_$_2_point_5 ,DROP COLUMN D1_D2_cost_$_3,DROP COLUMN D1_D2_cost_$_4;
+
+
+Create table taxisharing.Feb2PrecomputedData (ID serial, source_coords VARCHAR(50), dest1_coords VARCHAR(50),	dest2_coords VARCHAR(50),pickup_time timestamp,passenger_count int,	ret_angle numeric(6,3),	source_D1_distance_in_miles numeric(10,5), source_D1_time_in_minutes numeric(6,3),	source_D1_avg_speed_per_minute numeric(6,3), original_cost_$_2 numeric(5,2), original_cost$_2_point_5  numeric(5,2), 	original_cost_$_3 numeric(5,2), original_cost_$_4 numeric(5,2), original_accepted_delay  numeric(6,3), 	D1_D2_distance_in_miles  numeric(10,5), 	D1_D2_time_in_minutes  numeric(6,3), 	D1_D2_avg_speed_per_minute  numeric(6,3), 	D1_D2_cost_$_2  numeric(5,2),	D1_D2_cost_$_2_point_5  numeric(5,2),	D1_D2_cost_$_3  numeric(5,2),	D1_D2_cost_$_4  numeric(5,2));
+insert into taxisharing.Feb2PrecomputedData select * from taxisharing.Feb2PrecomputedCleanData where dest2_coords <> ' ' ;
+select count(*) from taxisharing.Feb2PrecomputedData;
+
+
+drop table taxisharing.Feb2PrecomputedCleanData
+\COPY taxisharing.Feb2NewTripRequests  (id,source_coords , dest1_coords,pickup_time ,passenger_count,source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay) FROM 'C:\Users\ykutta2\Desktop\Feb_New_Trip_Requests.csv' DELIMITER ',' CSV HEADER;
+\COPY taxisharing.Feb2PrecomputedData (id,source_coords , dest1_coords,dest2_coords ,pickup_time ,passenger_count,ret_angle ,	source_D1_distance_in_miles , source_D1_time_in_minutes, source_D1_avg_speed_per_minute, original_cost_$_2, original_cost$_2_point_5 , original_cost_$_3 , original_cost_$_4,original_accepted_delay,D1_D2_distance_in_miles,D1_D2_time_in_minutes, D1_D2_avg_speed_per_minute,D1_D2_cost_$_2,D1_D2_cost_$_2_point_5,D1_D2_cost_$_3,D1_D2_cost_$_4) FROM 'C:\Users\ykutta2\Desktop\Feb_Precomputed_Data.csv' DELIMITER ',' CSV HEADER;
