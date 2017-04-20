@@ -14,7 +14,6 @@ header_row.extend(['original_cost$2','original_cost$2.5','original_cost$3','orig
 header_row.extend(['D1_D2_distance(in miles)','D1_D2_time(in minutes)' ,'D1_D2_avg_speed(per minute)','D1_D2_cost$2','D1_D2_cost$2.5','D1_D2_cost$3','D1_D2_cost$4'])
 
 unique_dest=set()
-global_pair_sets=set()
 trip_dict={}
 passenger_dict={}
 source_coords= (-73.785924,40.645134)
@@ -32,9 +31,11 @@ def create_unique_dest_list():
                 dest_coords = (float(row["dropoff_longitude"]) , float (row["dropoff_latitude"]) )
                 timestamp=row["tpep_pickup_datetime"]
                 try: ##Handling dates of format Year: 16, 2016
-                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
+                    ##datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
+                    datetime_timestamp = datetime.strptime(timestamp, '%d/%m/%y %H:%M')
                 except ValueError:
-                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
+                    ##datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
+                    datetime_timestamp = datetime.strptime(timestamp, '%d/%m/%Y %H:%M')
                                
                 passenger_count=row["passenger_count"]
                 unique_dest.add(dest_coords)
@@ -98,7 +99,6 @@ def osrm_distance_cal(point1, point2):
         d1_latitude,d1_longitude=point1
         d2_latitude,d2_longitude=point2
 
-        ##url = "http://router.project-osrm.org/route/v1/driving/"+str(d1_latitude) +","+str(d1_longitude)+";" +str(d2_latitude) +","+str(d2_longitude)+";"
         url = "http://127.0.0.1:5000/route/v1/driving/"+str(d1_latitude) +","+str(d1_longitude)+";" +str(d2_latitude) +","+str(d2_longitude)
         response = urlopen(url)
         string = response.read().decode('utf-8')
@@ -153,19 +153,13 @@ def main():
         print()
 
         ##Create Time intervals of 5 mins
-        #delta = [timedelta(minutes=i) for i in range(0, 1000000,5)]
-
         range_q=starttime - timedelta(minutes=5)
-        while range_q < endtime:
-            range_q =range_q + timedelta(minutes=5)
-            
-        #for time_interval in delta:
+
+
+        range_q=starttime
+        while(endtime > cur_start_time):
+            range_q= range_q  + timedelta(minutes=4,seconds=59)
             matchings=0
-            #range_q=starttime + time_interval
-            #if range_q > endtime:
-                #print("Limit exceeded")
-                #break
-            
             ##Retrieve from dictionary only rows pertaining to current time period
             time_interval_keys = [x for x in temp_trip_dict if temp_trip_dict[x] <= range_q]
             if len(time_interval_keys) == 0:
@@ -178,7 +172,6 @@ def main():
             for dest_1 in time_interval_keys:
                 ##Calculate Distance, Time & Average Speed from (S, D1)
                 source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
-                ##print("Source and d1 values: ", source_D1_distance ,source_D1_time ,source_D1_avg_speed )
                 if source_D1_distance == -1 or source_D1_time == -1 or source_D1_avg_speed == -1:
                     continue
                 
@@ -202,15 +195,6 @@ def main():
                         temp_row.extend(['' ,'' ,'','','','',''])
                         writer.writerow(temp_row)
                         continue
-                        
-##                    
-##                    ## If the pair of (S,D1,D2) is already in the set then continue without calculation
-##                    if (source_coords,dest_1,dest_2) in global_pair_sets:
-##                        continue
-##                    
-##                    ## If the pair of (S,D2,D1) is already in the set then continue without calculation
-##                    if (source_coords,dest_2,dest_1) in global_pair_sets:
-##                        continue
 
                     ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
                     ret_angle = cal_angle(source_coords,dest_1,dest_2)
@@ -229,12 +213,10 @@ def main():
                     temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
                     
                     writer.writerow(temp_row)
-
-                    ##Adding (S,D1,D2) to global set, so that no re-compuation is perfromed
-                    global_pair_sets.add((source_coords,dest_1,dest_2))
                     matchings=matchings+1
             
                 del temp_trip_dict[dest_1] ## Delete this key from the time interval dictionary,since all computations are completed
+            range_q = range_q + timedelta(seconds=1)
             print("Matching Count ",matchings)
             print()
 
