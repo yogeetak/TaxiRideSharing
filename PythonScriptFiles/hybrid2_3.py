@@ -19,7 +19,7 @@ final_single_rides={}
 single_trip_distance = 0; single_trip_time =0;
 csv_list=[]
 processing_time={}
-processing_time_running = 0
+processing_time_running = 0; total_pool_count=0;
 def create_db_conn():
     try:
         global cursor
@@ -49,7 +49,7 @@ def find_pairing(trip):
         d1_original_accepted_delay = trip[12] ;original_cost_2= trip[8]; original_cost_25= trip[9];original_cost_3 = trip[10] ;original_cost_4= trip[11];d1_new_50_accepted_delay=trip[12]
  
         ##Select all precomputed rows from table for destination D1, with angle >=30, ordered by maximum original delay (desc)
-        a= "select * from taxisharing.janprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay desc;".format(d1_coords)
+        a= "select * from taxisharing.Feb2PrecomputedData where dest1_coords ='{0}' and ret_angle <= 30 order by original_accepted_delay desc;".format(d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -80,7 +80,7 @@ def find_pairing(trip):
                 continue
 
             #Retriving the orginal S-D2 distance and time from trips tables
-            stmt= "select * from taxisharing.JanNewTripRequests where dest1_coords ='{0}'".format(d2_coords)
+            stmt= "select * from taxisharing.Feb2NewTripRequests where dest1_coords ='{0}'".format(d2_coords)
             cursor.execute(stmt)
             d2_rows = cursor.fetchall()
             
@@ -131,7 +131,7 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
             
         global running_shared_total_distance; global running_shared_total_time;
         ##Select all precomputed rows from table for destination D1, with angle >=30, ordered by maximum original delay (desc)
-        a= "select * from taxisharing.janprecomputeddata where dest1_coords ='{0}' and ret_angle <= 30 and dest2_coords !='{1}' order by original_accepted_delay desc;".format(d2_coords,d1_coords)
+        a= "select * from taxisharing.Feb2PrecomputedData where dest1_coords ='{0}' and ret_angle <= 30 and dest2_coords !='{1}' order by original_accepted_delay desc;".format(d2_coords,d1_coords)
         cursor.execute(a)
         precomputed_rows = cursor.fetchall()
         if len(precomputed_rows) == 0 or precomputed_rows == None:
@@ -179,7 +179,7 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
                 continue
 
             #Retriving the orginal S-D3 distance and time from trips tables
-            stmt= "select * from taxisharing.JanNewTripRequests where dest1_coords ='{0}'".format(d3_coords)
+            stmt= "select * from taxisharing.Feb2NewTripRequests where dest1_coords ='{0}'".format(d3_coords)
             cursor.execute(stmt)
             d3_rows = cursor.fetchall()
             
@@ -223,7 +223,7 @@ def third_pairing(d1_coords,d2_coords,existing_passenger_count,d2_trip,d1_d2_tim
 
 def print_values(): 
     try:
-        global single_trip_distance; global single_trip_time;
+        global single_trip_distance; global single_trip_time;global total_pool_count;
         new_final_single_rides={}
 
         ##Any unmatched trips, add to single ride dict
@@ -238,7 +238,8 @@ def print_values():
                 csv_list.extend([temp_row])
                 
         print("************************************")
-        print("Total Number of Unique Rides Considered (Without Duplicates):", len(original_trips_data))
+        print("Total Number of Rides Considered:", len(original_trips_data))
+        print("Total Number of Pools considered in this run which have rides:", total_pool_count)
         print()
         print("Number of total matches", len(final_pairing))
         print("Number of no matches found(Single Trips)", len(final_single_rides))
@@ -277,25 +278,25 @@ def print_values():
         print(exc_type, fname, exc_tb.tb_lineno)
  
 def write_to_csv():
-    with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_jan_3pass.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_jan.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/Final_Output_Feb2_k23.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/Final_Output_Feb2_k23.csv','w',encoding='ISO-8859-1',newline='') as csvwriterfile:
         writer = csv.writer(csvwriterfile, dialect='excel')
         writer.writerow(header_row)
         writer.writerows(csv_list)
     
 def main():
     try:
-        global cursor;global processing_time_running;
+        global cursor;global processing_time_running; global total_pool_count;
         global total_no_of_rides_in_run; global without_sharing_total_distance; global without_sharing_total_time; 
         if cursor is None:
             cursor = create_db_conn()
             
-        cursor.execute("""select min(pickup_time) from taxisharing.JanNewTripRequests;""")
+        cursor.execute("""select min(pickup_time) from taxisharing.Feb2NewTripRequests;""")
         rows = cursor.fetchall()
         starttime=rows[0][0]
         print("Start Time:" , starttime)
 
-        cursor.execute("""select max(pickup_time) from taxisharing.JanNewTripRequests;""")
+        cursor.execute("""select max(pickup_time) from taxisharing.Feb2NewTripRequests;""")
         rows1 = cursor.fetchall()
         endtime = rows1[0][0]
         print("End Time: ", endtime)
@@ -311,7 +312,7 @@ def main():
             cur_end_time= cur_start_time  + timedelta(minutes=4,seconds=59)
 
             ##Select rows from Database within 5 minute intervals
-            cursor.execute("select * from taxisharing.JanNewTripRequests where pickup_time between %s and %s order by JanNewTripRequests.original_accepted_delay desc",(cur_start_time, cur_end_time))
+            cursor.execute("select * from taxisharing.Feb2NewTripRequests where pickup_time between %s and %s order by Feb2NewTripRequests.original_accepted_delay desc",(cur_start_time, cur_end_time))
             time_window = cursor.fetchall()
             print("Current Time Window: ",cur_start_time,cur_end_time)
             print("Number of rides in time windown:", len(time_window))
@@ -320,7 +321,10 @@ def main():
                 hours='peak'
             else:
                 hours='nonpeak'
+            if len(time_window) > 0:#implies pool has trips
+                total_pool_count = total_pool_count + 1
             for trip in time_window:
+               
                 d1_coords = trip[2]
                 original_trips_data[d1_coords] = [trip[5] , trip[6],len(time_window),hours,counter]     ##FORMAT : [s_d1_dist, s_d1_time,poolsize,peaknonpeak,poolnumber]
                 without_sharing_total_distance = without_sharing_total_distance + trip[5]
@@ -333,7 +337,7 @@ def main():
             processing_time_running = processing_time_running + processing_time[counter]
             print("Total Processing Time for this Time Window", toc-tic)
             print("************************************")
-            if counter == 5:
+            if counter == 1:
                 break  #Delete to run for all rides in time window
         print(endtime)
         print(cur_end_time)
