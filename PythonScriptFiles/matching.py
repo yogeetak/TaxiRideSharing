@@ -352,8 +352,8 @@ def main():
             processing_time_running = processing_time_running + processing_time[counter]
             print("Total Processing Time for this window",toc-tic)
             print("************************************")
-            if counter == 5:
-                break  #Delete to run for all rides in time window
+            #ArithmeticError  if counter == 5:
+#                break  #Delete to run for all rides in time window
         print(endtime)
         print(cur_end_time)
 
