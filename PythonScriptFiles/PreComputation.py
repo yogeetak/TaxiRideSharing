@@ -22,8 +22,8 @@ source_coords= (-73.785924,40.645134)
 def create_unique_dest_list():
     
     ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
-    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/January_Week_1.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
         unique_dest=set() 
         for row in reader:
@@ -31,11 +31,9 @@ def create_unique_dest_list():
                 dest_coords = (float(row["dropoff_longitude"]) , float (row["dropoff_latitude"]) )
                 timestamp=row["tpep_pickup_datetime"]
                 try: ##Handling dates of format Year: 16, 2016
-                    ##datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
-                    datetime_timestamp = datetime.strptime(timestamp, '%d/%m/%y %H:%M')
+                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%y %H:%M')
                 except ValueError:
-                    ##datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
-                    datetime_timestamp = datetime.strptime(timestamp, '%d/%m/%Y %H:%M')
+                    datetime_timestamp = datetime.strptime(timestamp, '%m/%d/%Y %H:%M')
                                
                 passenger_count=row["passenger_count"]
                 unique_dest.add(dest_coords)
@@ -124,101 +122,103 @@ def osrm_distance_cal(point1, point2):
 
     
 def main():
-    global global_pair_sets
-    unique_dest=create_unique_dest_list()
-    temp_trip_dict=trip_dict  ##Values will be deleted from the temp dictionary to avoid recalculating
-
-    print("****************************************")
-    print("Length of Unique Destinations in File: ", len(unique_dest))
-    print("****************************************")
-    print()
-   
-    ##Opening csv file to write pre computed data
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-    ##with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
-        writer = csv.writer(csvwriterfile, dialect='excel')
-        writer.writerow(header_row)
-
-        ##Sorting the trips by PickUp Times in ascending order:
-        sorted_x = sorted(trip_dict.items(), key=operator.itemgetter(1))
-        key,starttime = sorted_x[0]
-        lastindex=len(sorted_x) - 1
-        key,endtime= sorted_x[lastindex]
+    try:
+        
+        global global_pair_sets
+        unique_dest=create_unique_dest_list()
+        temp_trip_dict=trip_dict  ##Values will be deleted from the temp dictionary to avoid recalculating
 
         print("****************************************")
-        print("Start Time of File", starttime)
-        print("End Time of File", endtime)
+        print("Length of Unique Destinations in File: ", len(unique_dest))
         print("****************************************")
         print()
 
-        ##Create Time intervals of 5 mins
-        range_q=starttime - timedelta(minutes=5)
+        ##Opening csv file to write pre computed data
+        ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+        ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/PreComputed_TaxiData-20000-1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+        with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/PreComputed_January_Week_1.csv', 'w',encoding='ISO-8859-1',newline='') as csvwriterfile:
+            writer = csv.writer(csvwriterfile, dialect='excel')
+            writer.writerow(header_row)
 
+            ##Sorting the trips by PickUp Times in ascending order:
+            sorted_x = sorted(trip_dict.items(), key=operator.itemgetter(1))
+            key,starttime = sorted_x[0]
+            lastindex=len(sorted_x) - 1
+            key,endtime= sorted_x[lastindex]
 
-        range_q=starttime
-        while(endtime > cur_start_time):
-            range_q= range_q  + timedelta(minutes=4,seconds=59)
-            matchings=0
-            ##Retrieve from dictionary only rows pertaining to current time period
-            time_interval_keys = [x for x in temp_trip_dict if temp_trip_dict[x] <= range_q]
-            if len(time_interval_keys) == 0:
-                continue
+            print("****************************************")
+            print("Start Time of File", starttime)
+            print("End Time of File", endtime)
+            print("****************************************")
+            print()
 
-            print("Time Interval:", range_q)
-            print("Destination Group Count", len(time_interval_keys))
-            
-            ##Iterate Values only for the time periods, match within same time period
-            for dest_1 in time_interval_keys:
-                ##Calculate Distance, Time & Average Speed from (S, D1)
-                source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
-                if source_D1_distance == -1 or source_D1_time == -1 or source_D1_avg_speed == -1:
+            ##Create Time intervals of 5 mins
+            range_q=starttime - timedelta(minutes=5)
+            while( range_q < endtime):
+                range_q =range_q + timedelta(minutes=5)
+                
+                matchings=0
+                ##Retrieve from dictionary only rows pertaining to current time period
+                time_interval_keys = [x for x in temp_trip_dict if temp_trip_dict[x] <= range_q]
+                if len(time_interval_keys) == 0:
                     continue
                 
-                ##Calculating Acceptable Delay
-                if source_D1_distance >= 5:
-                    original_accepted_delay = (source_D1_time * 30)/100
-                else:
-                    original_accepted_delay = (source_D1_time * 50)/100
-
-                ##New acceptable delay
-                new_50_accepted_delay = (source_D1_time * 50)/100
-                    
-                    
-                for dest_2 in time_interval_keys:
-                     
-                    ##Dont calculate for same destinations  - (S,D1,D1), But write values to file
-                    if(dest_1 == dest_2):
-                        ##Writing all pre computed values to csv file
-                        temp_row=[source_coords,dest_1,' ',trip_dict[dest_1],passenger_dict[dest_1],'',source_D1_distance ,source_D1_time ,source_D1_avg_speed]
-                        temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])    
-                        temp_row.extend(['' ,'' ,'','','','',''])
-                        writer.writerow(temp_row)
+                print("Current Time Window: ",range_q)
+                print("Destination Group Count", len(time_interval_keys))
+                
+                ##Iterate Values only for the time periods, match within same time period
+                for dest_1 in time_interval_keys:
+                    ##Calculate Distance, Time & Average Speed from (S, D1)
+                    source_D1_distance ,source_D1_time ,source_D1_avg_speed  = osrm_distance_cal(source_coords,dest_1)
+                    if source_D1_distance == -1 or source_D1_time == -1 or source_D1_avg_speed == -1:
                         continue
+                    
+                    ##Calculating Acceptable Delay
+                    if source_D1_distance >= 5:
+                        original_accepted_delay = (source_D1_time * 30)/100
+                    else:
+                        original_accepted_delay = (source_D1_time * 50)/100
 
-                    ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
-                    ret_angle = cal_angle(source_coords,dest_1,dest_2)
-
-                    if ret_angle == -1:  ## Incase of error, continue loop
-                        continue
+                    ##New acceptable delay
+                    new_50_accepted_delay = (source_D1_time * 50)/100
                         
-                    ##Calculate Distance, Time & Average Speed from (D1, D2)
-                    D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed  = osrm_distance_cal(dest_1,dest_2)
-                    if D1_D2_distance == -1 or D1_D2_time == -1 or D1_D2_avg_speed == -1:
-                        continue
-                                                    
-                    ##Writing all pre computed values to csv file 
-                    temp_row=[source_coords,dest_1,dest_2,trip_dict[dest_1],passenger_dict[dest_1],round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
-                    temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])
-                    temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
-                    
-                    writer.writerow(temp_row)
-                    matchings=matchings+1
-            
-                del temp_trip_dict[dest_1] ## Delete this key from the time interval dictionary,since all computations are completed
-            range_q = range_q + timedelta(seconds=1)
-            print("Matching Count ",matchings)
-            print()
+                        
+                    for dest_2 in time_interval_keys:
+                         
+                        ##Dont calculate for same destinations  - (S,D1,D1), But write values to file
+                        if(dest_1 == dest_2):
+                            ##Writing all pre computed values to csv file
+                            temp_row=[source_coords,dest_1,' ',trip_dict[dest_1],passenger_dict[dest_1],'',source_D1_distance ,source_D1_time ,source_D1_avg_speed]
+                            temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])    
+                            temp_row.extend(['' ,'' ,'','','','',''])
+                            writer.writerow(temp_row)
+                            continue
+
+                        ##Calculate Angles of datapoints (S,D1,D2) - The points in tuple latitude/longitude degrees space
+                        ret_angle = cal_angle(source_coords,dest_1,dest_2)
+
+                        if ret_angle == -1:  ## Incase of error, continue loop
+                            continue
+                            
+                        ##Calculate Distance, Time & Average Speed from (D1, D2)
+                        D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed  = osrm_distance_cal(dest_1,dest_2)
+                        if D1_D2_distance == -1 or D1_D2_time == -1 or D1_D2_avg_speed == -1:
+                            continue
+                                                        
+                        ##Writing all pre computed values to csv file 
+                        temp_row=[source_coords,dest_1,dest_2,trip_dict[dest_1],passenger_dict[dest_1],round(ret_angle,2),source_D1_distance ,source_D1_time ,source_D1_avg_speed]
+                        temp_row.extend([source_D1_distance*2,source_D1_distance*2.5,source_D1_distance*3,source_D1_distance*4,original_accepted_delay,new_50_accepted_delay])
+                        temp_row.extend([D1_D2_distance ,D1_D2_time ,D1_D2_avg_speed,D1_D2_distance*2,D1_D2_distance*2.5,D1_D2_distance*3,D1_D2_distance*4])
+                        
+                        writer.writerow(temp_row)
+                        matchings=matchings+1
+                
+                    del temp_trip_dict[dest_1] ## Delete this key from the time interval dictionary,since all computations are completed
+                print("Matching Count ",matchings)
+                print()
+    except Exception as e:
+        print("Exception :", e)
+     
 
 
 if __name__ == '__main__':
