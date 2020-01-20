@@ -21,7 +21,7 @@ source_coords= (-73.785924,40.645134)
 
 def create_unique_dest_list():
     
-    ##with open('/Users/apple/Desktop/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
+    
     ##with open('C:/Users/pravaljain/PycharmProjects/TaxiRideSharing/Taxi Cleaned Data/TaxiData-20000-1.csv', 'r') as csvreaderfile:
     with open('C:/Users/ykutta2/Desktop/TaxiSharing/Taxi Cleaned Data/January_Week_1.csv', 'r') as csvreaderfile:
         reader = csv.DictReader(csvreaderfile)
